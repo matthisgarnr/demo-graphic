@@ -936,6 +936,16 @@
     // --- Green overlay ---
     drawGreenOverlay(cx, cy, radius * 0.7, st.greenOverlay);
 
+    // --- Soft dark vignette behind text area (screen center) ---
+    {
+      const textGrad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, h * 0.45);
+      textGrad.addColorStop(0, 'rgba(10,31,30,0.35)');
+      textGrad.addColorStop(0.4, 'rgba(10,31,30,0.15)');
+      textGrad.addColorStop(1, 'rgba(10,31,30,0)');
+      ctx.fillStyle = textGrad;
+      ctx.fillRect(0, 0, w, h);
+    }
+
     // --- PWM labels (step 2) ---
     drawLabels(projByIdx, st.labelOpacity, now);
 
