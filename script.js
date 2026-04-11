@@ -279,8 +279,8 @@
   // Step 1: PWM — particles converge back, labels appear
   // Step 2: CSE — globe with causal connection highlights
   const NUM_STEPS = 3;
-  const BREAKS = [0, 0.35, 0.70, 1.0];
-  const HERO_INTRO = 0.08; // scrollProgress range for hero→step0 transition
+  const BREAKS = [0, 0.12, 0.55, 1.0];  // Step 0 very short (12%), step 1 (43%), step 2 (45%)
+  const HERO_INTRO = 0.05;
 
   const HERO_STATE = {
     rotSpeed: 0.003, globeOffY: 1.3, zoom: 1.6,
@@ -294,23 +294,23 @@
     { // 0 — Problem Statement (chaos): globe rises to center, icons scatter
       rotSpeed: 0.006, globeOffY: 0.3, zoom: 1.0,
       stormAlpha: 0.75, normalAlpha: 0.5,
-      lineAlpha: 0.01, scatterAmt: 1.3,
+      lineAlpha: 0.01, scatterAmt: 0.8,
       greenOverlay: 0, labelOpacity: 0.3, causalHighlight: 0,
       heroGlow: 0,
     },
     { // 1 — PWM (converge + labels): globe centered on screen
       rotSpeed: 0.002, globeOffY: 0.15, zoom: 1.2,
-      stormAlpha: 0.95, normalAlpha: 0.75,
-      lineAlpha: 0.2, scatterAmt: 0,
-      greenOverlay: 0.25, labelOpacity: 1, causalHighlight: 0,
-      heroGlow: 0,
+      stormAlpha: 1.0, normalAlpha: 0.9,
+      lineAlpha: 0, scatterAmt: 0,
+      greenOverlay: 0.3, labelOpacity: 1, causalHighlight: 0,
+      heroGlow: 0.3,
     },
     { // 2 — CSE (causal connections): globe stays centered, stops spinning
       rotSpeed: 0, globeOffY: 0.15, zoom: 1.3,
-      stormAlpha: 0.95, normalAlpha: 0.8,
-      lineAlpha: 0.3, scatterAmt: 0,
+      stormAlpha: 1.0, normalAlpha: 0.9,
+      lineAlpha: 0, scatterAmt: 0,
       greenOverlay: 0.35, labelOpacity: 0, causalHighlight: 1,
-      heroGlow: 0,
+      heroGlow: 0.2,
     },
   ];
 
@@ -356,18 +356,18 @@
   // ============================================================
   function drawGreenOverlay(cx, cy, radius, amount) {
     if (amount < 0.005) return;
-    const overlayR = radius * 1.15;
-    const oy = cy - radius * 0.1;
+    const overlayR = radius * 1.3;
+    const oy = cy - radius * 0.05;
     const grad = ctx.createRadialGradient(cx, oy, 0, cx, oy, overlayR);
-    grad.addColorStop(0, `rgba(22,163,74,${0.11 * amount})`);
-    grad.addColorStop(0.35, `rgba(22,163,74,${0.07 * amount})`);
-    grad.addColorStop(0.6, `rgba(22,163,74,${0.03 * amount})`);
+    grad.addColorStop(0, `rgba(22,163,74,${0.2 * amount})`);
+    grad.addColorStop(0.3, `rgba(22,163,74,${0.12 * amount})`);
+    grad.addColorStop(0.6, `rgba(22,163,74,${0.05 * amount})`);
     grad.addColorStop(1, `rgba(22,163,74,0)`);
     ctx.beginPath(); ctx.arc(cx, oy, overlayR, 0, Math.PI * 2); ctx.fillStyle = grad; ctx.fill();
-    const innerR = radius * 0.55;
+    const innerR = radius * 0.6;
     const g2 = ctx.createRadialGradient(cx, oy, 0, cx, oy, innerR);
-    g2.addColorStop(0, `rgba(22,200,80,${0.08 * amount})`);
-    g2.addColorStop(0.5, `rgba(22,180,70,${0.05 * amount})`);
+    g2.addColorStop(0, `rgba(22,200,80,${0.15 * amount})`);
+    g2.addColorStop(0.5, `rgba(22,180,70,${0.08 * amount})`);
     g2.addColorStop(1, `rgba(22,163,74,0)`);
     ctx.beginPath(); ctx.arc(cx, oy, innerR, 0, Math.PI * 2); ctx.fillStyle = g2; ctx.fill();
   }
@@ -648,17 +648,17 @@
     }
   }
 
-  function drawCausalHighlights(projByIdx, highlight, now) {
+  function drawCausalHighlights(projByIdx, highlight, now, globeCx, globeCy, globeRadius) {
     if (highlight < 0.01) return;
 
     // --- LIGHTNING BOLT: scroll-driven, fixed position relative to globe ---
     if (lightningBolt && highlight > 0.3) {
       const { offsets } = lightningBolt;
 
-      // Convert fixed offsets to screen coordinates using current globe center/radius
+      // Convert fixed offsets to screen coordinates using globe center/radius
       const pts = offsets.map(o => ({
-        x: cx + o.x * radius,
-        y: cy - o.y * radius,
+        x: globeCx + o.x * globeRadius,
+        y: globeCy - o.y * globeRadius,
       }));
 
       if (pts.length >= 4) {
@@ -802,7 +802,8 @@
             // Dark pill behind label
             const pillW = tw + pillPad * 2, pillH = 32;
             ctx.beginPath();
-            ctx.roundRect(lx - pillPad, ly - pillH / 2, pillW, pillH, 6);
+            if (ctx.roundRect) { ctx.roundRect(lx - pillPad, ly - pillH / 2, pillW, pillH, 6); }
+            else { ctx.rect(lx - pillPad, ly - pillH / 2, pillW, pillH); }
             ctx.fillStyle = `rgba(20,10,0,${a * 0.85})`;
             ctx.fill();
             ctx.strokeStyle = `rgba(245,158,11,${a * 0.7})`;
@@ -825,6 +826,8 @@
   let projByIdx = [];
 
   function renderOptimized(now) {
+    requestAnimationFrame(renderOptimized);
+    try {
     const st = getState(scrollProgress);
     ctx.clearRect(0, 0, w, h);
 
@@ -882,17 +885,14 @@
 
     sorted.sort((a, b) => a.depth - b.depth);
 
-    // --- Dark overlay behind orb, on top of background ---
-    const overlayAlpha = 0.35;
-    if (overlayAlpha > 0) {
-      ctx.fillStyle = `rgba(0,0,0,${overlayAlpha})`;
-      ctx.fillRect(0, 0, w, h);
-    }
+    // --- Solid dark background so particles don't compete with terrain texture ---
+    ctx.fillStyle = '#0A1F1E';
+    ctx.fillRect(0, 0, w, h);
 
     // --- Connection lines REMOVED for performance ---
 
     // --- Causal highlights (step 3) ---
-    drawCausalHighlights(projByIdx, st.causalHighlight, now);
+    drawCausalHighlights(projByIdx, st.causalHighlight, now, cx, cy, radius);
 
     // --- Hero glow (step 0) — soft radial light behind particles ---
     if (st.heroGlow > 0.01) {
@@ -939,7 +939,7 @@
     // --- PWM labels (step 2) ---
     drawLabels(projByIdx, st.labelOpacity, now);
 
-    requestAnimationFrame(renderOptimized);
+    } catch(e) { console.error('RENDER ERROR:', e); }
   }
 
   // ============================================================
