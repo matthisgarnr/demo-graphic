@@ -305,12 +305,12 @@
       greenOverlay: 0.3, labelOpacity: 1, causalHighlight: 0,
       heroGlow: 0.3,
     },
-    { // 2 — CSE (causal connections): globe stays centered, stops spinning
-      rotSpeed: 0, globeOffY: 0.15, zoom: 1.3,
-      stormAlpha: 1.0, normalAlpha: 0.9,
+    { // 2 — CSE (causal connections): zoom in dramatically, icons gone
+      rotSpeed: 0, globeOffY: 0.1, zoom: 2.0,
+      stormAlpha: 1.0, normalAlpha: 0.95,
       lineAlpha: 0, scatterAmt: 0,
-      greenOverlay: 0.35, labelOpacity: 0, causalHighlight: 1,
-      heroGlow: 0.2,
+      greenOverlay: 0.4, labelOpacity: 0, causalHighlight: 1,
+      heroGlow: 0.4,
     },
   ];
 
