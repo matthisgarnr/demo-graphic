@@ -528,59 +528,30 @@
       const revealT = Math.max(0, Math.min(1, (labelOpacity - staggerDelay) / (1 - staggerDelay)));
       if (revealT < 0.01) continue;
 
-      // Pulse glow — each label pulses at its own phase
-      const pulse = 0.7 + 0.3 * Math.sin(now * 0.002 + li * 1.7);
+      // Pulse glow — each icon pulses at its own phase
+      const pulse = 0.6 + 0.4 * Math.sin(now * 0.0025 + li * 1.7);
       const alpha = revealT * pulse;
 
-      const iconSize = 16;
-      const padX = 8, padY = 5;
+      const iconSize = 20;
 
-      // Measure label text width for pill background
-      ctx.font = '600 11px Inter, sans-serif';
-      const textW = ctx.measureText(lbl.label).width;
-      const pillW = iconSize + 6 + textW + padX * 2;
-      const pillH = iconSize + padY * 2;
-      const pillX = p.sx + 10;
-      const pillY = p.sy - pillH / 2;
-
-      // Glow behind pill
-      const glowA = alpha * 0.15;
+      // Outer glow behind icon
+      const glowR = iconSize * 1.4;
       ctx.beginPath();
-      ctx.arc(pillX + pillW / 2, pillY + pillH / 2, pillW * 0.7, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(34,197,94,${glowA})`;
+      ctx.arc(p.sx, p.sy, glowR, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(34,197,94,${alpha * 0.18})`;
       ctx.fill();
 
-      // Glassy pill background
-      const pillR = pillH / 2;
+      // Inner glow
       ctx.beginPath();
-      ctx.moveTo(pillX + pillR, pillY);
-      ctx.lineTo(pillX + pillW - pillR, pillY);
-      ctx.arcTo(pillX + pillW, pillY, pillX + pillW, pillY + pillR, pillR);
-      ctx.arcTo(pillX + pillW, pillY + pillH, pillX + pillW - pillR, pillY + pillH, pillR);
-      ctx.lineTo(pillX + pillR, pillY + pillH);
-      ctx.arcTo(pillX, pillY + pillH, pillX, pillY + pillH - pillR, pillR);
-      ctx.arcTo(pillX, pillY, pillX + pillR, pillY, pillR);
-      ctx.closePath();
-      ctx.fillStyle = `rgba(255,255,255,${0.14 * alpha})`;
+      ctx.arc(p.sx, p.sy, iconSize * 0.8, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(34,197,94,${alpha * 0.1})`;
       ctx.fill();
-      ctx.strokeStyle = `rgba(34,197,94,${0.35 * alpha})`;
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
 
-      const ix = pillX + padX;
-      const iy = pillY + padY;
-
-      // Draw Iconoir SVG icon
+      // Draw icon centered on particle
       const paths = ICONOIR[lbl.icon];
       if (paths) {
-        drawIconPaths(paths, ix, iy, iconSize, alpha);
+        drawIconPaths(paths, p.sx - iconSize / 2, p.sy - iconSize / 2, iconSize, alpha);
       }
-
-      // Label text — full opacity
-      ctx.font = '600 11px Inter, sans-serif';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-      ctx.fillText(lbl.label, ix + iconSize + 6, pillY + pillH / 2);
     }
   }
 
