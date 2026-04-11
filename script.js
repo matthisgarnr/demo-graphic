@@ -750,46 +750,84 @@
         }
         smoothPath.push(pts[pts.length - 1]);
 
-        // SCROLL-DRIVEN: highlight 0.3→0.9 draws the bolt, 0.9→1.0 reveals root cause
-        const drawProgress = Math.max(0, Math.min(1, (highlight - 0.3) / 0.6));
-        const headIdx = Math.floor(drawProgress * (smoothPath.length - 1));
-        const boltAlpha = Math.min(1, (highlight - 0.3) / 0.2); // fade in opacity
+        // SCROLL-DRIVEN: highlight 0.15→0.95 draws the bolt slowly
+        const drawProgress = Math.max(0, Math.min(1, (highlight - 0.15) / 0.8));
+        const headIdx = Math.floor(smoothstep(drawProgress) * (smoothPath.length - 1));
+        const boltAlpha = Math.min(1, (highlight - 0.15) / 0.15);
 
-        // Draw the path up to the scroll-driven head position
-        const drawPath = (color, width) => {
-          ctx.strokeStyle = color;
-          ctx.lineWidth = width;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
+        // Draw gradient trail — each segment fades from bright at head to dim at tail
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        for (let i = 1; i <= headIdx && i < smoothPath.length; i++) {
+          const sp = smoothPath[i];
+          const prev = smoothPath[i - 1];
+          if (sp.depth < -0.3 || prev.depth < -0.3) continue;
+
+          // Gradient: bright near head, fading toward start
+          const distFromHead = (headIdx - i) / smoothPath.length;
+          const trailAlpha = Math.max(0.05, Math.exp(-distFromHead * 4));
+          const a = boltAlpha * trailAlpha;
+
+          // Outer glow — wide, soft
+          ctx.strokeStyle = `rgba(34,197,94,${a * 0.08})`;
+          ctx.lineWidth = 16 * trailAlpha + 4;
           ctx.beginPath();
-          let started = false;
-          for (let i = 0; i <= headIdx && i < smoothPath.length; i++) {
-            const sp = smoothPath[i];
-            if (sp.depth < -0.2) { started = false; continue; }
-            if (!started) { ctx.moveTo(sp.x, sp.y); started = true; }
-            else { ctx.lineTo(sp.x, sp.y); }
-          }
+          ctx.moveTo(prev.x, prev.y);
+          ctx.lineTo(sp.x, sp.y);
           ctx.stroke();
-        };
 
-        // Three layers: wide glow, mid, core
-        drawPath(`rgba(34,197,94,${boltAlpha * 0.1})`, 18);
-        drawPath(`rgba(34,220,100,${boltAlpha * 0.35})`, 6);
-        drawPath(`rgba(180,255,200,${boltAlpha * 0.85})`, 2.5);
+          // Mid glow
+          ctx.strokeStyle = `rgba(34,220,100,${a * 0.3})`;
+          ctx.lineWidth = 5 * trailAlpha + 2;
+          ctx.beginPath();
+          ctx.moveTo(prev.x, prev.y);
+          ctx.lineTo(sp.x, sp.y);
+          ctx.stroke();
 
-        // Traveling head dot at the current scroll position
+          // Core — bright white-green, thinnest
+          ctx.strokeStyle = `rgba(180,255,200,${a * 0.8})`;
+          ctx.lineWidth = 2 * trailAlpha + 0.5;
+          ctx.beginPath();
+          ctx.moveTo(prev.x, prev.y);
+          ctx.lineTo(sp.x, sp.y);
+          ctx.stroke();
+        }
+
+        // Small fork branches at a few points along the bolt
+        for (let b = 0; b < indices.length - 2; b += 3) {
+          const branchStart = b * SUBDIV;
+          if (branchStart >= headIdx || branchStart >= smoothPath.length) continue;
+          const sp = smoothPath[branchStart];
+          const distFromHead = (headIdx - branchStart) / smoothPath.length;
+          const ba = boltAlpha * Math.exp(-distFromHead * 5) * 0.3;
+          if (ba < 0.02) continue;
+
+          // Short forked line in a random-ish direction
+          const angle = (b * 2.3 + 1.1) % (Math.PI * 2);
+          const forkLen = 15 + (b % 4) * 8;
+          const fx = sp.x + Math.cos(angle) * forkLen;
+          const fy = sp.y + Math.sin(angle) * forkLen;
+
+          ctx.strokeStyle = `rgba(34,197,94,${ba})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(sp.x, sp.y);
+          ctx.lineTo(fx, fy);
+          ctx.stroke();
+        }
+
+        // Traveling head dot with glow
         if (headIdx > 0 && headIdx < smoothPath.length) {
           const hp = smoothPath[headIdx];
-          if (hp.depth > -0.2) {
-            ctx.beginPath();
-            ctx.arc(hp.x, hp.y, 6, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(200,255,220,${boltAlpha * 0.9})`;
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(hp.x, hp.y, 14, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(34,197,94,${boltAlpha * 0.15})`;
-            ctx.fill();
-          }
+          ctx.beginPath();
+          ctx.arc(hp.x, hp.y, 7, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(200,255,220,${boltAlpha * 0.95})`;
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(hp.x, hp.y, 16, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(34,197,94,${boltAlpha * 0.12})`;
+          ctx.fill();
         }
 
         // --- ROOT CAUSE NODE: appears when bolt reaches the end ---
