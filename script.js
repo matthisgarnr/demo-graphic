@@ -230,14 +230,22 @@
 
   function transitionToStep(newStep) {
     if (newStep === currentStep) return;
-    if (transitioning) { pendingStep = newStep; return; }
+    pendingStep = null;
+    transitioning = false;
+
+    // Immediately kill all GSAP on all steps and hide them
+    for (let i = 0; i < stepData.length; i++) {
+      const { el, lines } = stepData[i];
+      gsap.killTweensOf(lines);
+      if (i !== newStep) {
+        el.classList.remove('active');
+        gsap.set(lines, { y: 60, opacity: 0 });
+      }
+    }
+
     const oldStep = currentStep;
     currentStep = newStep;
-    if (oldStep >= 0 && oldStep < stepData.length) {
-      hideStep(oldStep, () => {
-        if (newStep >= 0 && newStep < stepData.length) showStep(newStep);
-      });
-    } else if (newStep >= 0 && newStep < stepData.length) {
+    if (newStep >= 0 && newStep < stepData.length) {
       showStep(newStep);
     }
   }
@@ -438,42 +446,51 @@
       'M14 19L17 22L22 17',
       'M16 2V5.4C16 5.73137 16.2686 6 16.6 6H20',
     ],
-    // Metrics/traces glyph
+    // Metrics/traces glyph (Observability)
     metrics: [
       'M3 20L8 15L13 18L21 10',
       'M17 10H21V14',
     ],
+    // Connection — arrowed line
+    connection: [
+      'M3 12H17',
+      'M14 8L18 12L14 16',
+      'M21 12L21.01 11.99',
+    ],
   };
 
+  // Icons matching the Production World Model contents:
+  // Service, Database, Queue, Compute, Alert, Observability, Deployment, Runbook, Team, Connection
   const PWM_LABELS = [
+    { icon: 'appWindow', idx: null },   // Service
+    { icon: 'database', idx: null },    // Database
+    { icon: 'queue', idx: null },       // Queue
+    { icon: 'server', idx: null },      // Compute
+    { icon: 'alert', idx: null },       // Alert
+    { icon: 'activity', idx: null },    // Observability (pulse)
+    { icon: 'package', idx: null },     // Deployment
+    { icon: 'doc', idx: null },         // Runbook
+    { icon: 'people', idx: null },      // Team
+    { icon: 'connection', idx: null },  // Connection
+    // Duplicates for density
     { icon: 'database', idx: null },
-    { icon: 'alert', idx: null },
-    { icon: 'doc', idx: null },
-    { icon: 'people', idx: null },
     { icon: 'appWindow', idx: null },
     { icon: 'server', idx: null },
-    { icon: 'package', idx: null },
-    { icon: 'metrics', idx: null },
-    { icon: 'cloud', idx: null },
-    { icon: 'terminal', idx: null },
-    { icon: 'cube', idx: null },
-    { icon: 'activity', idx: null },
-    { icon: 'database', idx: null },
     { icon: 'alert', idx: null },
-    { icon: 'server', idx: null },
     { icon: 'doc', idx: null },
+    { icon: 'queue', idx: null },
+    { icon: 'activity', idx: null },
     { icon: 'people', idx: null },
-    { icon: 'appWindow', idx: null },
-    { icon: 'cloud', idx: null },
     { icon: 'package', idx: null },
-    { icon: 'terminal', idx: null },
-    { icon: 'metrics', idx: null },
-    { icon: 'cube', idx: null },
+    { icon: 'connection', idx: null },
     { icon: 'database', idx: null },
     { icon: 'server', idx: null },
+    { icon: 'appWindow', idx: null },
     { icon: 'alert', idx: null },
-    { icon: 'activity', idx: null },
     { icon: 'doc', idx: null },
+    { icon: 'queue', idx: null },
+    { icon: 'people', idx: null },
+    { icon: 'activity', idx: null },
   ];
 
   function assignLabelParticles() {
