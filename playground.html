@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traversal — Architecture Section Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Host+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      transition: background 0.5s ease, color 0.5s ease;
+    }
+
+    /* ===== THEME TOKENS ===== */
+    [data-theme="light"] body { background: #F1F1EF; color: #171D1F; }
+    [data-theme="dark"] body { background: #0A1F1E; color: #fff; }
+
+    .arch-section {
+      max-width: 1400px; margin: 0 auto;
+      padding: 2rem;
+      position: relative;
+    }
+
+    /* ===== TOGGLE ===== */
+    .theme-toggle {
+      position: fixed; top: 20px; right: 20px; z-index: 100;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(128,128,128,0.15);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(128,128,128,0.2);
+      border-radius: 8px; padding: 6px 12px;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 500;
+      transition: background 0.3s;
+    }
+
+    [data-theme="light"] .theme-toggle { color: #171D1F; }
+    [data-theme="dark"] .theme-toggle { color: #fff; }
+    .theme-toggle:hover { background: rgba(128,128,128,0.25); }
+
+    .theme-toggle .icon-sun, .theme-toggle .icon-moon { width: 14px; height: 14px; }
+    [data-theme="light"] .theme-toggle .icon-moon { display: none; }
+    [data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+
+    /* ===== SECTION LABEL ===== */
+    .arch-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; text-transform: uppercase;
+      letter-spacing: 2px; color: #16A34A;
+      margin-bottom: 20px;
+    }
+
+    /* ===== MAIN: centered orb ===== */
+    .arch-main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: calc(100vh - 4rem);
+      justify-content: center;
+    }
+
+    .arch-text-col {
+      padding-bottom: 2rem;
+    }
+
+    .arch-text-col h2 {
+      font-family: 'Host Grotesk', sans-serif;
+      font-size: 48px; font-weight: 400;
+      line-height: 110%; letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .arch-text-col h2 strong { font-weight: 500; }
+
+    [data-theme="light"] .arch-text-col h2 { color: #171D1F; }
+    [data-theme="dark"] .arch-text-col h2 { color: #fff; }
+
+    .arch-text-col .arch-subtitle {
+      font-size: 15px; line-height: 1.7;
+      margin-bottom: 20px;
+      max-width: 480px;
+    }
+
+    [data-theme="light"] .arch-text-col .arch-subtitle { color: rgba(0,0,0,0.5); }
+    [data-theme="dark"] .arch-text-col .arch-subtitle { color: rgba(255,255,255,0.5); }
+
+    .arch-header-cta {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 10px 10px 10px 20px; border-radius: 8px;
+      font-family: 'Host Grotesk', sans-serif;
+      font-size: 14px; font-weight: 300;
+      text-decoration: none; white-space: nowrap;
+      transition: box-shadow 0.2s;
+    }
+
+    [data-theme="light"] .arch-header-cta {
+      background: #fff; color: #0F1828;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    [data-theme="dark"] .arch-header-cta {
+      background: #fff; color: #0F1828;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .arch-header-cta:hover { box-shadow: 0px 4px 12px rgba(0,0,0,0.1); }
+
+    .arch-header-cta .arrow {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 6px;
+      background: #16A34A; color: #fff; font-size: 16px;
+    }
+
+    /* Orb column */
+    .arch-orb-col {
+      display: flex; flex-direction: column; align-items: center;
+      position: relative;
+    }
+
+    /* ============================================================
+       LIGHT MODE — List view (disabled, orb used in both modes)
+       ============================================================ */
+    .light-view { display: none !important; }
+
+    .light-list { position: relative; }
+
+    .light-layer {
+      padding: 20px 0;
+      border-top: 2px solid rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .light-layer:last-child { border-bottom: 2px solid rgba(0,0,0,0.1); }
+
+    .light-layer-name {
+      font-family: 'Host Grotesk', sans-serif;
+      font-size: 80px; font-weight: 400;
+      line-height: 95%; letter-spacing: -0.02em;
+      color: rgba(23,29,31,0.2);
+      transition: color 0.3s;
+    }
+
+    .light-layer.active .light-layer-name {
+      color: #05403B;
+    }
+
+    .light-layer:hover:not(.active) .light-layer-name {
+      color: rgba(23,29,31,0.35);
+    }
+
+    /* Light popover */
+    .light-popover {
+      position: absolute;
+      z-index: 10;
+      width: 380px;
+      background: #FFFFFF;
+      border: 2px solid rgba(0,0,0,0.12);
+      border-radius: 12px;
+      padding: 24px 32px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px);
+      right: 0;
+    }
+
+    .light-popover.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .light-popover-label {
+      font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+      font-size: 16px; font-weight: 600;
+      line-height: 95%;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.5);
+      margin-bottom: 24px;
+    }
+
+    .light-popover-title {
+      font-family: 'Host Grotesk', sans-serif;
+      font-size: 24px; font-weight: 400;
+      line-height: 95%; letter-spacing: -0.02em;
+      color: #000;
+      margin-bottom: 24px;
+    }
+
+    .light-popover-desc {
+      font-family: 'Inter', sans-serif;
+      font-size: 20px; font-weight: 400;
+      line-height: 28px;
+      color: rgba(0,0,0,0.75);
+    }
+
+    /* Light mobile card */
+    .light-mobile-card {
+      display: none;
+      margin-top: 24px;
+      background: #fff;
+      border: 2px solid rgba(0,0,0,0.12);
+      border-radius: 12px;
+      padding: 24px 32px;
+    }
+
+    /* ============================================================
+       DARK MODE — Orb view
+       ============================================================ */
+    .dark-view { display: flex; flex-direction: column; align-items: center; }
+
+    /* Orb assembly */
+    .dia-orb-assembly {
+      position: relative;
+      width: 520px; height: 520px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto;
+    }
+
+    .dia-compressor-ring {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      border-radius: 50%; border: none;
+      cursor: pointer;
+      transition: box-shadow 0.4s, background 0.4s;
+    }
+
+    .dia-compressor-ring::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: -1px; right: -1px; bottom: -1px;
+      border-radius: 50%;
+      background: conic-gradient(
+        from var(--shimmer-angle, 0deg),
+        rgba(34,197,94,0) 0deg, rgba(34,197,94,0) 60deg,
+        rgba(34,197,94,0.06) 120deg, rgba(34,197,94,0.35) 180deg,
+        rgba(34,197,94,0.6) 210deg, rgba(34,197,94,0.35) 240deg,
+        rgba(34,197,94,0.06) 300deg, rgba(34,197,94,0) 360deg
+      );
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #fff calc(100% - 1.5px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #fff calc(100% - 1.5px));
+      animation: shimmer-rotate 4s linear infinite;
+    }
+
+    @keyframes shimmer-rotate { from { --shimmer-angle: 0deg; } to { --shimmer-angle: 360deg; } }
+    @property --shimmer-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+    .dia-compressor-ring.active {
+      background: rgba(34,197,94,0.03);
+      box-shadow: 0 0 60px rgba(34,197,94,0.08), inset 0 0 50px rgba(34,197,94,0.03);
+    }
+
+    .dia-compressor-ring.active::before {
+      background: conic-gradient(
+        from var(--shimmer-angle, 0deg),
+        rgba(34,197,94,0) 0deg, rgba(34,197,94,0.15) 90deg,
+        rgba(34,197,94,0.7) 180deg, rgba(34,197,94,1) 210deg,
+        rgba(34,197,94,0.7) 240deg, rgba(34,197,94,0.15) 310deg,
+        rgba(34,197,94,0) 360deg
+      );
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
+    }
+
+    .dia-compressor-label {
+      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+      font-family: 'Host Grotesk', sans-serif;
+      font-size: 14px; font-weight: 500;
+      color: rgba(255,255,255,0.2); white-space: nowrap;
+      transition: color 0.4s; pointer-events: none;
+    }
+
+    .dia-compressor-ring.active .dia-compressor-label { color: #fff; }
+
+    .dia-globe {
+      position: relative; width: 77%; aspect-ratio: 1 / 1;
+      border-radius: 50%; overflow: hidden; z-index: 2;
+    }
+
+    #arch-orb-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+
+    .dia-globe-band {
+      position: absolute; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background 0.4s; z-index: 1;
+    }
+
+    .dia-globe-band[data-layer="4"] { top: 0; height: 38%; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .dia-globe-band[data-layer="3"] { top: 38%; height: 22%; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .dia-globe-band[data-layer="2"] { top: 60%; height: 40%; }
+
+    .dia-globe-band.active { background: rgba(34,197,94,0.12); }
+    .dia-globe-band:hover:not(.active) { background: rgba(255,255,255,0.04); }
+
+    .dia-globe-band-label {
+      font-family: 'Host Grotesk', sans-serif;
+      font-size: 16px; font-weight: 600;
+      color: rgba(255,255,255,0.3); transition: color 0.4s;
+      pointer-events: none; text-shadow: 0 1px 12px rgba(0,0,0,0.5);
+      text-align: center; line-height: 1.3;
+    }
+
+    .dia-globe-band.active .dia-globe-band-label { color: #fff; }
+
+    .dia-globe::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      border-radius: 50%; border: 1px solid rgba(255,255,255,0.08);
+      pointer-events: none; z-index: 3;
+      transition: border-color 0.4s, box-shadow 0.4s;
+    }
+
+    .dia-globe.has-active-band::after {
+      border-color: rgba(34,197,94,0.2);
+      box-shadow: 0 0 40px rgba(34,197,94,0.08);
+    }
+
+    .dia-foundation { max-width: 580px; width: 100%; cursor: pointer; margin-top: 2rem; }
+
+    .dia-foundation-inner {
+      background: none;
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0;
+      padding: 20px 0 0;
+      text-align: center;
+      transition: border-color 0.4s;
+    }
+
+    .dia-foundation.active .dia-foundation-inner {
+      border-top-color: rgba(34,197,94,0.4);
+    }
+
+    .dia-foundation:hover:not(.active) .dia-foundation-inner {
+      border-top-color: rgba(255,255,255,0.2);
+    }
+
+    .dia-foundation-label {
+      font-family: 'Host Grotesk', sans-serif;
+      font-size: 18px; font-weight: 500;
+      color: rgba(255,255,255,0.3); transition: color 0.4s;
+    }
+
+    .dia-foundation.active .dia-foundation-label { color: #fff; }
+
+    .dia-sources {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; margin-top: 12px; flex-wrap: wrap; padding: 8px 0;
+    }
+
+    .dia-sources .source-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: rgba(255,255,255,0.3);
+    }
+
+    .dia-sources .source-dot {
+      width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,0.15);
+    }
+
+    /* Dark popover */
+    .arch-popover {
+      position: absolute; z-index: 50; width: 320px;
+      background: rgba(15,30,28,0.85);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 24px 24px 28px;
+      pointer-events: none; opacity: 0; transform: translateY(8px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+    }
+
+    .arch-popover.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+    .arch-popover-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1.5px; color: #16A34A; margin-bottom: 10px;
+    }
+
+    .arch-popover-title {
+      font-family: 'Host Grotesk', sans-serif;
+      font-size: 18px; font-weight: 500; letter-spacing: -0.02em;
+      color: #fff; margin-bottom: 8px; line-height: 1.2;
+    }
+
+    .arch-popover-desc { font-size: 13px; color: rgba(255,255,255,0.55); line-height: 1.65; }
+
+    .arch-mobile-card {
+      display: none; max-width: 480px; width: 100%;
+      margin: 24px auto 0;
+      background: rgba(15,30,28,0.85);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px; padding: 24px 24px 28px; text-align: left;
+    }
+
+    /* ============================================================
+       LIGHT MODE — color overrides for the orb diagram
+       ============================================================ */
+    [data-theme="light"] .dia-compressor-ring::before {
+      background: conic-gradient(
+        from var(--shimmer-angle, 0deg),
+        rgba(5,64,59,0) 0deg, rgba(5,64,59,0) 60deg,
+        rgba(5,64,59,0.06) 120deg, rgba(5,64,59,0.2) 180deg,
+        rgba(5,64,59,0.35) 210deg, rgba(5,64,59,0.2) 240deg,
+        rgba(5,64,59,0.06) 300deg, rgba(5,64,59,0) 360deg
+      );
+    }
+
+    [data-theme="light"] .dia-compressor-ring.active::before {
+      background: conic-gradient(
+        from var(--shimmer-angle, 0deg),
+        rgba(5,64,59,0) 0deg, rgba(5,64,59,0.1) 90deg,
+        rgba(5,64,59,0.4) 180deg, rgba(5,64,59,0.6) 210deg,
+        rgba(5,64,59,0.4) 240deg, rgba(5,64,59,0.1) 310deg,
+        rgba(5,64,59,0) 360deg
+      );
+    }
+
+    [data-theme="light"] .dia-compressor-ring.active {
+      background: rgba(5,64,59,0.03);
+      box-shadow: 0 0 40px rgba(5,64,59,0.06);
+    }
+
+    [data-theme="light"] .dia-compressor-label { color: rgba(0,0,0,0.2); }
+    [data-theme="light"] .dia-compressor-ring.active .dia-compressor-label { color: #05403B; }
+
+    [data-theme="light"] .dia-globe::after { border-color: rgba(0,0,0,0.1); }
+    [data-theme="light"] .dia-globe.has-active-band::after {
+      border-color: rgba(5,64,59,0.25);
+      box-shadow: 0 0 30px rgba(5,64,59,0.06);
+    }
+
+    [data-theme="light"] .dia-globe-band { border-bottom-color: rgba(0,0,0,0.08); }
+    [data-theme="light"] .dia-globe-band.active { background: rgba(5,64,59,0.1); }
+    [data-theme="light"] .dia-globe-band:hover:not(.active) { background: rgba(0,0,0,0.03); }
+
+    [data-theme="light"] .dia-globe-band-label {
+      color: rgba(23,29,31,0.35);
+      text-shadow: 0 1px 8px rgba(255,255,255,0.3);
+    }
+    [data-theme="light"] .dia-globe-band.active .dia-globe-band-label { color: #05403B; }
+
+    [data-theme="light"] .dia-foundation-inner {
+      border-top-color: rgba(0,0,0,0.1);
+    }
+    [data-theme="light"] .dia-foundation.active .dia-foundation-inner {
+      border-top-color: rgba(5,64,59,0.4);
+    }
+    [data-theme="light"] .dia-foundation:hover:not(.active) .dia-foundation-inner {
+      border-top-color: rgba(0,0,0,0.2);
+    }
+    [data-theme="light"] .dia-foundation-label { color: rgba(0,0,0,0.25); }
+    [data-theme="light"] .dia-foundation.active .dia-foundation-label { color: #05403B; }
+
+    [data-theme="light"] .dia-sources .source-pill { color: rgba(0,0,0,0.3); }
+    [data-theme="light"] .dia-sources .source-dot { background: rgba(0,0,0,0.15); }
+
+    /* Light popover */
+    [data-theme="light"] .arch-popover {
+      background: #fff;
+      border: 2px solid rgba(0,0,0,0.12);
+      backdrop-filter: none;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+
+    [data-theme="light"] .arch-popover-label { color: rgba(0,0,0,0.5); }
+    [data-theme="light"] .arch-popover-title { color: #000; }
+    [data-theme="light"] .arch-popover-desc { color: rgba(0,0,0,0.65); }
+
+    [data-theme="light"] .arch-mobile-card {
+      background: #fff;
+      border: 2px solid rgba(0,0,0,0.12);
+      backdrop-filter: none;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .arch-section { padding: 60px 20px 80px; }
+      .arch-main { grid-template-columns: 1fr; gap: 32px; min-height: auto; align-items: start; }
+      .arch-text-col h2 { font-size: 32px; }
+      .light-layer-name { font-size: 40px; }
+      .light-popover { display: none !important; }
+      .light-mobile-card { display: block; }
+      .dia-orb-assembly { width: 340px; height: 340px; }
+      .dia-globe { width: 260px; height: 260px; }
+      .dia-globe-band-label { font-size: 13px; }
+      .arch-popover { display: none !important; }
+      .arch-mobile-card { display: block; }
+    }
+
+    @media (max-width: 480px) {
+      .arch-section { padding: 48px 16px 60px; }
+      .arch-text-col h2 { font-size: 26px; }
+      .light-layer-name { font-size: 28px; }
+      .dia-orb-assembly { width: 290px; height: 290px; }
+      .dia-globe { width: 220px; height: 220px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Theme toggle -->
+<button class="theme-toggle" id="theme-toggle">
+  <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+  <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  <span id="toggle-label">Dark</span>
+</button>
+
+<section class="arch-section">
+
+  <!-- MAIN: centered orb -->
+  <div class="arch-main">
+    <div class="arch-orb-col" id="dark-view">
+
+      <div class="dia-orb-assembly" id="dia-orb-assembly">
+        <div class="dia-compressor-ring" data-layer="1">
+          <div class="dia-compressor-label">AI&#8209;Native Compressor&trade;</div>
+        </div>
+        <div class="dia-globe" id="dia-globe">
+          <canvas id="arch-orb-canvas"></canvas>
+          <div class="dia-globe-band" data-layer="4"><span class="dia-globe-band-label">Causal Search<br>Engine&trade;</span></div>
+          <div class="dia-globe-band" data-layer="3"><span class="dia-globe-band-label">Knowledge Bank&trade;</span></div>
+          <div class="dia-globe-band" data-layer="2"><span class="dia-globe-band-label">Production<br>World Model&trade;</span></div>
+        </div>
+      </div>
+
+      <div class="dia-foundation" data-layer="0">
+        <div class="dia-foundation-inner">
+          <div class="dia-foundation-label">Agentless Data Capture&trade;</div>
+        </div>
+      </div>
+
+      <div class="dia-sources">
+        <span class="source-pill">MELT telemetry</span><span class="source-dot"></span>
+        <span class="source-pill">Source code</span><span class="source-dot"></span>
+        <span class="source-pill">Deploys</span><span class="source-dot"></span>
+        <span class="source-pill">Runbooks</span><span class="source-dot"></span>
+        <span class="source-pill">Historical incidents</span><span class="source-dot"></span>
+        <span class="source-pill">Jira</span>
+      </div>
+
+      <div class="arch-popover" id="arch-popover">
+        <div class="arch-popover-label"></div>
+        <h3 class="arch-popover-title"></h3>
+        <p class="arch-popover-desc"></p>
+      </div>
+
+      <div class="arch-mobile-card" id="arch-mobile-card">
+        <div class="arch-popover-label"></div>
+        <h3 class="arch-popover-title"></h3>
+        <p class="arch-popover-desc"></p>
+      </div>
+
+    </div><!-- arch-orb-col -->
+  </div><!-- arch-main -->
+
+</section>
+
+<script>
+(function() {
+  'use strict';
+
+  const LAYERS = [
+    { name: 'Agentless Data Capture\u2122', title: 'Agentless Data Capture\u2122',
+      desc: 'Capture all production data\u2014telemetry, code, deploys, incidents\u2014without sidecars, pod injections, or tracing. Connect your APIs and get full visibility, fast.' },
+    { name: 'AI\u2011Native Compressor\u2122', title: 'AI\u2011Native Compressor\u2122',
+      desc: 'Compresses production data by up to 1,000:1 with no signal loss\u2014turning petabytes into terabytes. Reduce network and LLM costs while preserving causal context.' },
+    { name: 'Production World Model\u2122', title: 'Production World Model\u2122',
+      desc: 'A dynamic model of all causal relationships across your services, dependencies, code, changes, and incident history. It continuously self-updates to reflect how your environment actually works.' },
+    { name: 'Knowledge Bank\u2122', title: 'Knowledge Bank\u2122',
+      desc: 'Operational knowledge lives beyond telemetry\u2014in docs, runbooks, Slack, and engineers\u2019 heads. Knowledge Bank\u2122 captures it and integrates it into the Production World Model\u2122 so AI can reason with the same context your team does.' },
+    { name: 'Causal Search Engine\u2122', title: 'Causal Search Engine\u2122',
+      desc: 'Follows signals across 5\u201320+ hops to pinpoint root cause in minutes. Runs 10,000+ parallel queries in the time standard API-driven approaches test 100, testing causal paths and converging on evidence-backed root cause.' },
+  ];
+
+  const isTouch = !window.matchMedia('(hover: hover)').matches;
+
+  // ============================================================
+  // THEME TOGGLE
+  // ============================================================
+  const toggleBtn = document.getElementById('theme-toggle');
+  const toggleLabel = document.getElementById('toggle-label');
+
+  function getTheme() { return document.documentElement.getAttribute('data-theme'); }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    toggleLabel.textContent = theme === 'light' ? 'Dark' : 'Light';
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    setTheme(getTheme() === 'light' ? 'dark' : 'light');
+  });
+
+  // ============================================================
+  // ORB INTERACTION
+  // ============================================================
+  let darkActive = -1;
+  const popoverEl = document.getElementById('arch-popover');
+  const mobileCard = document.getElementById('arch-mobile-card');
+  const darkView = document.getElementById('dark-view');
+  const globeEl = document.getElementById('dia-globe');
+
+  const diaElements = {
+    0: document.querySelector('.dia-foundation'),
+    1: document.querySelector('.dia-compressor-ring'),
+    2: document.querySelector('.dia-globe-band[data-layer="2"]'),
+    3: document.querySelector('.dia-globe-band[data-layer="3"]'),
+    4: document.querySelector('.dia-globe-band[data-layer="4"]'),
+  };
+
+  function darkHighlight(idx) {
+    Object.values(diaElements).forEach(el => el.classList.remove('active'));
+    document.querySelector('.dia-compressor-ring').classList.remove('active');
+    globeEl.classList.remove('has-active-band');
+    if (diaElements[idx]) diaElements[idx].classList.add('active');
+    if (idx >= 2 && idx <= 4) globeEl.classList.add('has-active-band');
+    orbTargetGlow = (idx >= 2 && idx <= 4) ? 0.6 : 0.15;
+  }
+
+  function darkPopulate(target, idx) {
+    const l = LAYERS[idx];
+    target.querySelector('.arch-popover-label').textContent = l.name;
+    target.querySelector('.arch-popover-title').textContent = l.title;
+    target.querySelector('.arch-popover-desc').textContent = l.desc;
+  }
+
+  function darkPositionPopover(idx) {
+    const el = diaElements[idx];
+    const wrapRect = darkView.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    let top, left;
+    if (idx >= 1 && idx <= 4) {
+      const aRect = document.getElementById('dia-orb-assembly').getBoundingClientRect();
+      left = aRect.right - wrapRect.left + 20;
+      top = (idx >= 2 ? elRect.top : aRect.top) - wrapRect.top + (idx >= 2 ? elRect.height / 2 : aRect.height / 2) - 60;
+    } else {
+      left = elRect.left - wrapRect.left + elRect.width / 2 - 160;
+      top = elRect.top - wrapRect.top - 170;
+    }
+    const maxLeft = wrapRect.width - 340;
+    popoverEl.style.left = Math.max(0, Math.min(left, maxLeft)) + 'px';
+    popoverEl.style.top = Math.max(0, top) + 'px';
+  }
+
+  function isMobile() { return window.innerWidth <= 768; }
+
+  function darkShow(idx) {
+    if (darkActive === idx) return;
+    darkActive = idx;
+    darkHighlight(idx);
+
+    if (isMobile()) {
+      darkPopulate(mobileCard, idx);
+      mobileCard.style.display = 'block';
+      gsap.killTweensOf(mobileCard);
+      gsap.fromTo(mobileCard, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+    } else {
+      darkPopulate(popoverEl, idx);
+      darkPositionPopover(idx);
+      gsap.killTweensOf(popoverEl);
+      gsap.fromTo(popoverEl, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
+      popoverEl.classList.add('visible');
+    }
+  }
+
+  function darkHide() {
+    darkActive = -1;
+    Object.values(diaElements).forEach(el => el.classList.remove('active'));
+    document.querySelector('.dia-compressor-ring').classList.remove('active');
+    globeEl.classList.remove('has-active-band');
+    orbTargetGlow = 0.15;
+
+    gsap.to(popoverEl, { opacity: 0, y: 8, duration: 0.15, ease: 'power2.in',
+      onComplete: () => popoverEl.classList.remove('visible') });
+    gsap.to(mobileCard, { opacity: 0, duration: 0.15, onComplete: () => { mobileCard.style.display = 'none'; } });
+  }
+
+  Object.entries(diaElements).forEach(([idx, el]) => {
+    const i = parseInt(idx);
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (darkActive === i) {
+        darkHide();
+        mobileCard.style.display = 'none';
+      } else {
+        darkShow(i);
+      }
+    });
+  });
+
+  // Click outside to close
+  document.addEventListener('click', () => {
+    darkHide();
+    mobileCard.style.display = 'none';
+  });
+
+  // ============================================================
+  // ORB PARTICLES
+  // ============================================================
+  const ORB_N = 4000, GA = Math.PI * (3 - Math.sqrt(5));
+  let orbP = [], orbCanvas, orbCtx, orbW, orbH, orbDpr;
+  let orbRot = 0, orbActiveGlow = 0, orbTargetGlow = 0.15;
+  let orbInitialized = false;
+
+  function lerp(a,b,t){return a+(b-a)*t;}
+  function hash3(x,y,z){let h=x*374761393+y*668265263+z*1274126177;h=(h^(h>>13))*1274126177;return ((h^(h>>16))&0x7fffffff)/0x7fffffff;}
+  function noise3(px,py,pz){const ix=Math.floor(px),iy=Math.floor(py),iz=Math.floor(pz);const fx=px-ix,fy=py-iy,fz=pz-iz;const ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy),uz=fz*fz*(3-2*fz);const c000=hash3(ix,iy,iz),c100=hash3(ix+1,iy,iz),c010=hash3(ix,iy+1,iz),c110=hash3(ix+1,iy+1,iz),c001=hash3(ix,iy,iz+1),c101=hash3(ix+1,iy,iz+1),c011=hash3(ix,iy+1,iz+1),c111=hash3(ix+1,iy+1,iz+1);return c000*(1-ux)*(1-uy)*(1-uz)+c100*ux*(1-uy)*(1-uz)+c010*(1-ux)*uy*(1-uz)+c110*ux*uy*(1-uz)+c001*(1-ux)*(1-uy)*uz+c101*ux*(1-uy)*uz+c011*(1-ux)*uy*uz+c111*ux*uy*uz;}
+  function fbm3(x,y,z){return noise3(x,y,z)*0.65+noise3(x*2.3,y*2.3,z*2.3)*0.35;}
+
+  function initOrb(){
+    orbCanvas=document.getElementById('arch-orb-canvas');
+    if(!orbCanvas)return;
+    // Wait for layout — use setTimeout as final fallback
+    orbDpr=window.devicePixelRatio||1;
+    orbW=orbCanvas.offsetWidth;orbH=orbCanvas.offsetHeight;
+    if(orbW===0||orbH===0)return;
+    orbCanvas.width=orbW*orbDpr;orbCanvas.height=orbH*orbDpr;
+    orbCtx=orbCanvas.getContext('2d');
+    orbCtx.setTransform(orbDpr,0,0,orbDpr,0,0);
+    orbP=[];
+    for(let i=0;i<ORB_N;i++){const y=1-(i/(ORB_N-1))*2,r=Math.sqrt(1-y*y);const t=GA*i,x=Math.cos(t)*r,z=Math.sin(t)*r;const raw=fbm3(x*2.8,y*2.8,z*2.8);const chaos=Math.pow(Math.max(0,Math.min(1,raw*1.3-0.15)),1.4);const isS=chaos>0.55;orbP.push({x,y,z,chaos,isS,size:isS?(0.7+chaos*0.9):(0.35+(1-chaos)*0.3),cR:Math.round(lerp(220,120,chaos*0.9)),cG:Math.round(lerp(230,180,chaos*0.9)),cB:Math.round(lerp(235,140,chaos*0.85)),js:Math.random()*Math.PI*2,jv:isS?0.002:0.0005,ja:isS?0.012:0.003});}
+  }
+
+  function renderOrb(now){
+    if(!orbCtx){requestAnimationFrame(renderOrb);return;}
+    const isLight = getTheme() === 'light';
+    orbCtx.clearRect(0,0,orbW,orbH);orbRot+=0.0015;
+    orbActiveGlow+=(orbTargetGlow-orbActiveGlow)*0.04;
+    const cx=orbW/2,cy=orbH/2,rad=Math.min(orbW,orbH)*0.46;
+    const cR=Math.cos(orbRot),sR=Math.sin(orbRot);
+    const ga=0.04+orbActiveGlow*0.14;
+    const glowR = isLight ? 5 : 34, glowG = isLight ? 64 : 197, glowB = isLight ? 59 : 94;
+    const g=orbCtx.createRadialGradient(cx,cy,0,cx,cy,rad*1.1);
+    g.addColorStop(0,`rgba(${glowR},${glowG},${glowB},${ga})`);g.addColorStop(0.5,`rgba(${glowR},${glowG},${glowB},${ga*0.3})`);g.addColorStop(1,`rgba(${glowR},${glowG},${glowB},0)`);
+    orbCtx.fillStyle=g;orbCtx.fillRect(0,0,orbW,orbH);
+    const sorted=orbP.map(p=>{const rx=p.x*cR-p.z*sR,rz=p.x*sR+p.z*cR;const jt=now*p.jv+p.js;return{sx:cx+(rx+Math.sin(jt)*p.ja)*rad,sy:cy-(p.y+Math.cos(jt*1.3)*p.ja)*rad,depth:rz,...p};}).sort((a,b)=>a.depth-b.depth);
+    const gm=orbActiveGlow*0.25;
+    // Light mode: earthy/muted particles; Dark mode: original pale particles
+    for(const p of sorted){const df=(p.depth+1)/2,alpha=(p.isS?0.8:0.55)*df;if(alpha<0.01)continue;
+      let fr,fg,fb;
+      if(isLight){fr=Math.round(lerp(80,20,p.chaos*0.9));fg=Math.round(lerp(160,120,p.chaos*0.8));fb=Math.round(lerp(100,60,p.chaos*0.85));fr=Math.round(lerp(fr,16,gm));fg=Math.round(lerp(fg,163,gm));fb=Math.round(lerp(fb,74,gm));}
+      else{fr=Math.round(lerp(p.cR,34,gm));fg=Math.round(lerp(p.cG,197,gm));fb=Math.round(lerp(p.cB,94,gm));}
+      orbCtx.fillStyle=`rgba(${fr},${fg},${fb},${alpha})`;orbCtx.fillRect(p.sx-p.size*0.4,p.sy-p.size*0.4,p.size*0.8,p.size*0.8);}
+    requestAnimationFrame(renderOrb);
+  }
+
+  // Init orb — retry until canvas has layout dimensions
+  function bootOrb() {
+    orbCanvas = document.getElementById('arch-orb-canvas');
+    if (!orbCanvas || orbCanvas.offsetWidth < 10) {
+      setTimeout(bootOrb, 80);
+      return;
+    }
+    orbDpr = window.devicePixelRatio || 1;
+    orbW = orbCanvas.offsetWidth;
+    orbH = orbCanvas.offsetHeight;
+    orbCanvas.width = orbW * orbDpr;
+    orbCanvas.height = orbH * orbDpr;
+    orbCtx = orbCanvas.getContext('2d');
+    orbCtx.setTransform(orbDpr, 0, 0, orbDpr, 0, 0);
+    // Generate particles inline (bypass initOrb scoping issues)
+    orbP = [];
+    for (let i = 0; i < ORB_N; i++) {
+      const y = 1 - (i / (ORB_N - 1)) * 2, r = Math.sqrt(1 - y * y);
+      const t = GA * i, x = Math.cos(t) * r, z = Math.sin(t) * r;
+      const raw = fbm3(x * 2.8, y * 2.8, z * 2.8);
+      const chaos = Math.pow(Math.max(0, Math.min(1, raw * 1.3 - 0.15)), 1.4);
+      const isS = chaos > 0.55;
+      orbP.push({
+        x, y, z, chaos, isS,
+        size: isS ? (0.7 + chaos * 0.9) : (0.35 + (1 - chaos) * 0.3),
+        cR: Math.round(lerp(220, 120, chaos * 0.9)),
+        cG: Math.round(lerp(230, 180, chaos * 0.9)),
+        cB: Math.round(lerp(235, 140, chaos * 0.85)),
+        js: Math.random() * Math.PI * 2,
+        jv: isS ? 0.002 : 0.0005,
+        ja: isS ? 0.012 : 0.003,
+      });
+    }
+    orbInitialized = true;
+    requestAnimationFrame(renderOrb);
+  }
+  setTimeout(bootOrb, 0);
+
+  // Resize orb canvas when container changes
+  window.addEventListener('resize', () => {
+    if (!orbInitialized) return;
+    const cv = document.getElementById('arch-orb-canvas');
+    if (!cv || cv.offsetWidth === 0) return;
+    const dpr = window.devicePixelRatio || 1;
+    orbW = cv.offsetWidth; orbH = cv.offsetHeight;
+    cv.width = orbW * dpr; cv.height = orbH * dpr;
+    orbCtx = cv.getContext('2d');
+    orbCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  });
+
+  // Entrance
+  gsap.from('.dia-orb-assembly', { opacity:0, duration:1, delay:0.3, ease:'power3.out' });
+  gsap.from('.dia-foundation', { opacity:0, y:15, duration:0.6, delay:0.7, ease:'power3.out' });
+  gsap.from('.dia-sources', { opacity:0, y:10, duration:0.5, delay:0.9, ease:'power2.out' });
+
+})();
+</script>
+
+</body>
+</html>

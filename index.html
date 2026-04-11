@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traversal - The only AI SRE for the enterprise</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@dotlottie/player-component@2/dist/dotlottie-player.mjs" type="module"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/ScrollTrigger.min.js"></script>
+  <script src="https://unpkg.com/lenis@1/dist/lenis.min.js"></script>
+</head>
+<body>
+
+<div class="site-wrapper">
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-inner">
+      <nav class="nav">
+        <div class="nav-logo">
+          <span class="logo-text">Traversal</span>
+        </div>
+        <div class="nav-links-pill">
+          <a href="#">Customers</a>
+          <a href="#" class="has-dropdown">Product <span class="dropdown-caret">&#8250;</span></a>
+          <a href="#">Pricing</a>
+          <a href="#" class="has-dropdown">Resources <span class="dropdown-caret">&#8250;</span></a>
+          <a href="#">Company</a>
+        </div>
+        <div class="nav-actions">
+          <a href="#" class="nav-login">Login</a>
+          <a href="#" class="btn btn-nav-cta">Talk to a human <span class="btn-nav-icon">T</span></a>
+        </div>
+      </nav>
+
+      <div class="hero-content">
+        <a href="#" class="announcement-badge">
+          <span class="badge-new">new</span>
+          Traversal raised 48M
+          <span class="badge-arrow">&#8250;</span>
+        </a>
+        <h1>The only AI SRE<br>for the enterprise.</h1>
+        <p class="hero-subtitle">Traversal has built AI agents that autonomously troubleshoot, remediate, and prevent production incidents in minutes. The first and only AI SRE validated at Fortune 100 scale.</p>
+        <div class="hero-ctas">
+          <a href="#" class="btn btn-nav-cta btn-nav-cta--hero">Talk to a human <span class="btn-nav-icon">T</span></a>
+          <a href="#" class="btn btn-outline">
+            <span class="play-icon">&#9654;</span>
+            Watch Demo
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCROLL ANIMATION SECTION -->
+  <section class="scroll-animation" id="scroll-animation">
+    <div class="scroll-sticky">
+      <canvas id="globe-canvas"></canvas>
+
+      <div class="scroll-step" data-step="0">
+        <div class="line-mask"><h2>Production has outgrown human response and traditional observability.</h2></div>
+        <div class="line-mask"><p>Your production environment already contains the truth of every incident&#8202;&#8212;&#8202;but it&#8217;s buried across telemetry, code, dependencies, and tribal knowledge. Traversal turns that data into answers.</p></div>
+      </div>
+
+      <div class="scroll-step" data-step="1">
+        <div class="line-mask"><h2>We turn production into a model AI can reason over.</h2></div>
+        <div class="line-mask"><p>The Production World Model&#8482; is a continuously updated, AI-readable model of your entire production environment&#8202;&#8212;&#8202;spanning petabytes of services, dependencies, changes, code, system behavior, and tribal knowledge.</p></div>
+      </div>
+
+      <div class="scroll-step" data-step="2">
+        <div class="line-mask"><h2>Built on years of causal ML research, we isolate root cause&#8202;&#8212;&#8202;not just correlation.</h2></div>
+        <div class="line-mask"><p>The Causal Search Engine&#8482; uses causal reasoning to pinpoint root cause accurately in minutes, running 10,000+ analyses in the time standard API-driven approaches run 100.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES SECTION -->
+  <section class="features" id="features">
+    <div class="features-container">
+
+      <!-- Left column: sticky heading + nav dots -->
+      <div class="features-left">
+        <h2 class="features-heading">This architecture powers every core capability of Traversal&#8217;s AI SRE.</h2>
+        <nav class="features-nav">
+          <a href="#feature-0" class="features-nav-item active" data-feature="0">
+            <span class="features-nav-dot"></span>
+            <span class="features-nav-label">Alert Intelligence</span>
+          </a>
+          <a href="#feature-1" class="features-nav-item" data-feature="1">
+            <span class="features-nav-dot"></span>
+            <span class="features-nav-label">Root Cause Analysis</span>
+          </a>
+          <a href="#feature-2" class="features-nav-item" data-feature="2">
+            <span class="features-nav-dot"></span>
+            <span class="features-nav-label">Autonomous Remediation</span>
+          </a>
+          <a href="#feature-3" class="features-nav-item" data-feature="3">
+            <span class="features-nav-dot"></span>
+            <span class="features-nav-label">Continuous Code Resilience</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Right column: scrolling feature cards -->
+      <div class="features-right">
+
+        <div class="feature-card" id="feature-0">
+          <div class="feature-card-text">
+            <div class="feat-line-mask"><h3>Alert Intelligence &amp; Incident Prevention</h3></div>
+            <div class="feat-line-mask"><p>Autonomously correlates signals, eliminates alert noise, and catches issues before they become incidents.</p></div>
+            <div class="feat-line-mask"><a href="#" class="feature-link">Learn more <span>&#8250;</span></a></div>
+          </div>
+          <div class="feature-card-image">
+            <div class="ascii_wrap">
+              <canvas class="ascii_canvas"></canvas>
+              <img class="ascii_image" src="img/new/Frame 556.png" alt="Alert Intelligence UI">
+              <dotlottie-player class="lottie-overlay" src="img/new/lottie-1.lottie" background="transparent" speed="1" loop autoplay></dotlottie-player>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-card" id="feature-1">
+          <div class="feature-card-text">
+            <div class="feat-line-mask"><h3>Root Cause Analysis &amp; Mitigation</h3></div>
+            <div class="feat-line-mask"><p>Traces incidents across services, dependencies, and changes to isolate the true root cause and remediation path&#8202;&#8212;&#8202;fast.</p></div>
+            <div class="feat-line-mask"><a href="#" class="feature-link">Learn more <span>&#8250;</span></a></div>
+          </div>
+          <div class="feature-card-image">
+            <div class="ascii_wrap">
+              <canvas class="ascii_canvas"></canvas>
+              <img class="ascii_image" src="img/new/Frame 556-1.png" alt="Root Cause Analysis UI">
+              <dotlottie-player class="lottie-overlay" src="img/new/lottie-2.lottie" background="transparent" speed="1" loop autoplay></dotlottie-player>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-card" id="feature-2">
+          <div class="feature-card-text">
+            <div class="feat-line-mask"><h3>Autonomous Remediation</h3></div>
+            <div class="feat-line-mask"><p>Converts diagnosis into action with automated remediation that compresses recovery time.</p></div>
+            <div class="feat-line-mask"><a href="#" class="feature-link">Learn more <span>&#8250;</span></a></div>
+          </div>
+          <div class="feature-card-image">
+            <div class="ascii_wrap">
+              <canvas class="ascii_canvas"></canvas>
+              <img class="ascii_image" src="img/new/Frame 556-2.png" alt="Autonomous Remediation UI">
+              <dotlottie-player class="lottie-overlay" src="img/new/lottie-3.lottie" background="transparent" speed="1" loop autoplay></dotlottie-player>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-card" id="feature-3">
+          <div class="feature-card-text">
+            <div class="feat-line-mask"><h3>Continuous Code Resilience</h3></div>
+            <div class="feat-line-mask"><p>Automatically feeds production context back into development to make every code change safer, more resilient, and less likely to trigger incidents.</p></div>
+            <div class="feat-line-mask"><a href="#" class="feature-link">Learn more <span>&#8250;</span></a></div>
+          </div>
+          <div class="feature-card-image">
+            <div class="ascii_wrap">
+              <canvas class="ascii_canvas"></canvas>
+              <img class="ascii_image" src="img/new/Frame 556-2.png" alt="Continuous Code Resilience UI">
+              <dotlottie-player class="lottie-overlay" src="img/new/lottie-3.lottie" background="transparent" speed="1" loop autoplay></dotlottie-player>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</div><!-- .site-wrapper -->
+
+  <script src="script.js"></script>
+</body>
+</html>
