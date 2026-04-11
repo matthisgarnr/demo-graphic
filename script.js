@@ -885,8 +885,8 @@
 
     sorted.sort((a, b) => a.depth - b.depth);
 
-    // --- Solid dark background so particles don't compete with terrain texture ---
-    ctx.fillStyle = '#0A1F1E';
+    // --- Semi-transparent dark background — lets terrain show through slightly ---
+    ctx.fillStyle = 'rgba(10,31,30,0.75)';
     ctx.fillRect(0, 0, w, h);
 
     // --- Connection lines REMOVED for performance ---

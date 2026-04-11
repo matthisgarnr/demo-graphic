@@ -42,16 +42,7 @@ body {
   min-height: 100vh;
 }
 
-/* Subtle the terrain texture — reduce intensity */
-.site-wrapper::before {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(10,31,30,0.65);
-  pointer-events: none;
-  z-index: 0;
-  border-radius: 20px;
-}
+/* Terrain texture overlay removed — canvas handles its own dark background */
 
 a {
   text-decoration: none;
@@ -416,11 +407,16 @@ img {
 .scroll-step {
   position: absolute;
   z-index: 2;
-  max-width: 580px;
-  padding: 0 24px;
+  max-width: 620px;
+  padding: 32px 40px;
   pointer-events: none;
   bottom: 10%;
   visibility: hidden;
+  background: rgba(10,31,30,0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
 /* Step 0: centered on screen, on top of globe */
