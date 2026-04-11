@@ -843,10 +843,10 @@
 
     // --- Camera ---
     const globeCx = w / 2;
-    const offY = debugOverrides.globeOffY !== undefined ? debugOverrides.globeOffY : st.globeOffY;
-    const zoomO = debugOverrides.zoom !== undefined ? debugOverrides.zoom : st.zoom;
+    const offY = st.globeOffY;
+    const zoomO = st.zoom;
     const globeCy = h * 0.42 + offY * h * 0.55;
-    const radiusMult = debugOverrides.baseRadius !== undefined ? debugOverrides.baseRadius : 0.48;
+    const radiusMult = 0.48;
     const baseRadius = Math.min(w, h) * radiusMult;
     const radius = baseRadius * zoomO;
     const cx = globeCx;
@@ -883,7 +883,7 @@
     sorted.sort((a, b) => a.depth - b.depth);
 
     // --- Dark overlay behind orb, on top of background ---
-    const overlayAlpha = debugOverrides.overlayAlpha !== undefined ? debugOverrides.overlayAlpha : 0.4;
+    const overlayAlpha = 0.35;
     if (overlayAlpha > 0) {
       ctx.fillStyle = `rgba(0,0,0,${overlayAlpha})`;
       ctx.fillRect(0, 0, w, h);
@@ -1144,68 +1144,7 @@
   // ============================================================
   // DEBUG CONTROLLER
   // ============================================================
-  function setupDebugPanel() {
-    const panel = document.createElement('div');
-    panel.id = 'debug-panel';
-    panel.innerHTML = `
-      <style>
-        #debug-panel {
-          position: fixed; top: 12px; right: 12px; z-index: 99999;
-          background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
-          border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
-          padding: 16px 20px; min-width: 260px;
-          font-family: 'Inter', sans-serif; font-size: 12px; color: #ccc;
-          display: flex; flex-direction: column; gap: 10px;
-        }
-        #debug-panel h4 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase;
-          letter-spacing: 1px; color: #16A34A; font-weight: 700; }
-        #debug-panel label { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        #debug-panel input[type=range] { flex: 1; accent-color: #16A34A; cursor: pointer; }
-        #debug-panel .val { min-width: 40px; text-align: right; font-variant-numeric: tabular-nums; font-size: 11px; color: #fff; }
-        #debug-panel .toggle-btn { background: none; border: 1px solid rgba(255,255,255,0.2);
-          color: #ccc; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; margin-top: 4px; }
-        #debug-panel .toggle-btn:hover { background: rgba(255,255,255,0.1); }
-        #debug-panel.collapsed .panel-body { display: none; }
-      </style>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h4>Orb Controller</h4>
-        <button class="toggle-btn" onclick="this.closest('#debug-panel').classList.toggle('collapsed')">Toggle</button>
-      </div>
-      <div class="panel-body">
-        <label>Globe Y Offset
-          <input type="range" min="0" max="2" step="0.01" value="1.54" id="dbg-offY">
-          <span class="val" id="dbg-offY-val">1.54</span>
-        </label>
-        <label>Zoom
-          <input type="range" min="0.5" max="2.5" step="0.01" value="1.44" id="dbg-zoom">
-          <span class="val" id="dbg-zoom-val">1.44</span>
-        </label>
-        <label>Overlay Alpha
-          <input type="range" min="0" max="0.8" step="0.01" value="0.46" id="dbg-overlay">
-          <span class="val" id="dbg-overlay-val">0.46</span>
-        </label>
-        <label>Base Radius
-          <input type="range" min="0.2" max="0.8" step="0.01" value="0.48" id="dbg-radius">
-          <span class="val" id="dbg-radius-val">0.48</span>
-        </label>
-      </div>
-    `;
-    document.body.appendChild(panel);
-
-    const bind = (id, key, fmt) => {
-      const input = document.getElementById(id);
-      const val = document.getElementById(id + '-val');
-      input.addEventListener('input', () => {
-        const v = parseFloat(input.value);
-        debugOverrides[key] = v;
-        val.textContent = fmt ? fmt(v) : v.toFixed(2);
-      });
-    };
-    bind('dbg-offY', 'globeOffY');
-    bind('dbg-zoom', 'zoom');
-    bind('dbg-overlay', 'overlayAlpha');
-    bind('dbg-radius', 'baseRadius');
-  }
+  // Debug panel removed for production
 
   // ============================================================
   // INIT
@@ -1220,7 +1159,6 @@
     setupFeatureNav();
     setupFeatureAnimations();
     setupAsciiScatter();
-    setupDebugPanel();
   });
 
 })();
