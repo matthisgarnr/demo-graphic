@@ -319,8 +319,8 @@
       greenOverlay: 0.25, labelOpacity: 1, causalHighlight: 0,
       heroGlow: 0,
     },
-    { // 2 — CSE (causal connections): camera even closer, icons fade out
-      rotSpeed: 0.001, globeOffY: 0.50, zoom: 1.6,
+    { // 2 — CSE (causal connections): camera even closer, icons fade out, globe stops
+      rotSpeed: 0, globeOffY: 0.50, zoom: 1.6,
       stormAlpha: 0.95, normalAlpha: 0.7,
       lineAlpha: 0.3, scatterAmt: 0,
       greenOverlay: 0.35, labelOpacity: 0, causalHighlight: 1,
@@ -796,55 +796,54 @@
         const rcProgress = Math.max(0, Math.min(1, (highlight - 0.85) / 0.15));
         if (rootCauseIdx >= 0 && rcProgress > 0) {
           const rc = projByIdx[rootCauseIdx];
-          if (rc && rc.depth > -0.2) {
+          if (rc) {
             const rcPulse = 0.6 + 0.4 * Math.sin(now * 0.004);
-            const rcAlpha = rcProgress;
-            const rcDepth = Math.max(0, (rc.depth + 0.2) / 1.2);
+            const a = rcProgress; // no depth fade — always full visibility
 
             // Widest outer glow
             ctx.beginPath();
             ctx.arc(rc.sx, rc.sy, 40 + rcPulse * 12, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.1 * rcDepth})`;
+            ctx.fillStyle = `rgba(245,158,11,${a * 0.12})`;
             ctx.fill();
 
             // Mid glow
             ctx.beginPath();
             ctx.arc(rc.sx, rc.sy, 22, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.25 * rcDepth})`;
+            ctx.fillStyle = `rgba(245,158,11,${a * 0.3})`;
             ctx.fill();
 
             // Core
             ctx.beginPath();
             ctx.arc(rc.sx, rc.sy, 8, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255,210,60,${rcAlpha * 0.95 * rcDepth})`;
+            ctx.fillStyle = `rgba(255,210,60,${a})`;
             ctx.fill();
 
             // White hot center
             ctx.beginPath();
             ctx.arc(rc.sx, rc.sy, 3, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255,255,220,${rcAlpha * 0.9 * rcDepth})`;
+            ctx.fillStyle = `rgba(255,255,220,${a})`;
             ctx.fill();
 
-            // Label — pill background + large text
+            // Label — pill background + large text — fully opaque
             const labelText = 'Root Cause';
-            ctx.font = '700 16px Inter, sans-serif';
+            ctx.font = '700 18px Inter, sans-serif';
             const tw = ctx.measureText(labelText).width;
-            const lx = rc.sx + 22, ly = rc.sy;
-            const pillPad = 8;
+            const lx = rc.sx + 24, ly = rc.sy;
+            const pillPad = 10;
 
             // Dark pill behind label
-            const pillW = tw + pillPad * 2, pillH = 28;
+            const pillW = tw + pillPad * 2, pillH = 32;
             ctx.beginPath();
             ctx.roundRect(lx - pillPad, ly - pillH / 2, pillW, pillH, 6);
-            ctx.fillStyle = `rgba(20,10,0,${rcAlpha * 0.7 * rcDepth})`;
+            ctx.fillStyle = `rgba(20,10,0,${a * 0.85})`;
             ctx.fill();
-            ctx.strokeStyle = `rgba(245,158,11,${rcAlpha * 0.5 * rcDepth})`;
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgba(245,158,11,${a * 0.7})`;
+            ctx.lineWidth = 1.5;
             ctx.stroke();
 
-            // Label text
+            // Label text — full white-amber, no fade
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = `rgba(255,200,50,${rcAlpha * 0.95 * rcDepth})`;
+            ctx.fillStyle = `rgba(255,200,50,${a})`;
             ctx.fillText(labelText, lx, ly);
           }
         }
