@@ -109,21 +109,7 @@
       });
     }
 
-    neighborPairs = [];
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].origX - particles[j].origX;
-        const dy = particles[i].origY - particles[j].origY;
-        const dz = particles[i].origZ - particles[j].origZ;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < CONNECTION_DISTANCE) {
-          const avgChaos = (particles[i].chaos + particles[j].chaos) / 2;
-          neighborPairs.push([i, j, dist, avgChaos]);
-          if (neighborPairs.length >= MAX_CONNECTIONS) break;
-        }
-      }
-      if (neighborPairs.length >= MAX_CONNECTIONS) break;
-    }
+    // neighborPairs removed — connection lines disabled for performance
   }
 
   // ============================================================
@@ -614,52 +600,24 @@
       return best;
     }
 
-    // --- Build the LIGHTNING BOLT: smooth central trace ---
+    // --- Build the LIGHTNING BOLT as fixed relative offsets from globe center ---
+    // These are normalized offsets (-1 to 1) that get multiplied by the globe radius
+    // Path goes from upper-left to lower-right across the globe face
     {
-      // Find a front-facing particle to use as the central hub
-      function findCentralParticle(minDist, maxDist, fromIdx, exclude) {
-        const fp = particles[fromIdx];
-        let best = -1, bestScore = -Infinity;
-        for (let attempt = 0; attempt < 300; attempt++) {
-          const j = Math.floor(Math.random() * N);
-          if (j === fromIdx || exclude.has(j)) continue;
-          const pj = particles[j];
-          // Prefer front-facing, central particles
-          if (pj.origZ < -0.1) continue;
-          const dx = fp.origX - pj.origX;
-          const dy = fp.origY - pj.origY;
-          const dz = fp.origZ - pj.origZ;
-          const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-          if (d < minDist || d > maxDist) continue;
-          // Score: front-facing + central (close to Y=0) + some randomness
-          const score = pj.origZ * 0.5 - Math.abs(pj.origY) * 0.3 + Math.random() * 0.2;
-          if (score > bestScore) { best = j; bestScore = score; }
-        }
-        return best;
-      }
-
-      // Start from a front-facing particle near the top
-      const candidates = particles
-        .map((p, i) => ({ i, score: p.origZ * 0.5 + p.origY * 0.3 + Math.random() * 0.2 }))
-        .filter(c => particles[c.i].origZ > 0.2)
-        .sort((a, b) => b.score - a.score);
-      const startIdx = candidates[0].i;
-      const chain = [startIdx];
-      const chainSet = new Set([startIdx]);
-
-      // Shorter hops = smoother path, 12 hops
-      for (let hop = 0; hop < 12; hop++) {
-        const lastIdx = chain[chain.length - 1];
-        const next = findCentralParticle(0.15, 0.55, lastIdx, chainSet);
-        if (next === -1) break;
-        chain.push(next);
-        chainSet.add(next);
-      }
-
-      if (chain.length >= 6) {
-        rootCauseIdx = chain[chain.length - 1];
-        lightningBolt = { indices: chain };
-      }
+      const boltOffsets = [
+        { x: -0.25, y: -0.55 },
+        { x: -0.10, y: -0.42 },
+        { x:  0.12, y: -0.35 },
+        { x: -0.05, y: -0.22 },
+        { x:  0.20, y: -0.10 },
+        { x:  0.05, y:  0.02 },
+        { x:  0.25, y:  0.12 },
+        { x:  0.10, y:  0.22 },
+        { x:  0.30, y:  0.32 },
+        { x:  0.15, y:  0.42 },
+        { x:  0.28, y:  0.52 },
+      ];
+      lightningBolt = { offsets: boltOffsets };
     }
 
     // --- Build ambient background traces (dimmer, thinner) ---
@@ -693,46 +651,19 @@
   function drawCausalHighlights(projByIdx, highlight, now) {
     if (highlight < 0.01) return;
 
-    // --- Ambient background traces (dim) ---
-    for (let t = 0; t < causalTraces.length; t++) {
-      const trace = causalTraces[t];
-      const { indices, speed, offset, width, hue } = trace;
-      const traceReveal = Math.max(0, Math.min(1, highlight * 2 - (t / causalTraces.length) * 1.2));
-      if (traceReveal < 0.01) continue;
-      const pulsePos = ((now * 0.001 * speed + offset) % 1) * indices.length;
-
-      for (let s = 0; s < indices.length - 1; s++) {
-        const a = projByIdx[indices[s]];
-        const b = projByIdx[indices[s + 1]];
-        if (!a || !b) continue;
-        const avgDepth = (a.depth + b.depth) / 2;
-        if (avgDepth < -0.2) continue;
-        const depthFade = Math.max(0, (avgDepth + 0.2) / 1.2);
-        const distFromPulse = Math.min(Math.abs(s - pulsePos), Math.abs(s - pulsePos + indices.length), Math.abs(s - pulsePos - indices.length));
-        const pulseIntensity = Math.exp(-distFromPulse * distFromPulse * 0.15);
-        const alpha = traceReveal * depthFade * (0.03 + pulseIntensity * 0.2) * highlight;
-        if (alpha < 0.005) continue;
-        const r = hue === 0 ? 34 : 20, g = hue === 0 ? 197 : 200, bC = hue === 0 ? 94 : 160;
-        ctx.strokeStyle = `rgba(${r},${g},${bC},${alpha})`;
-        ctx.lineWidth = width * 0.6 * depthFade;
-        ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
-      }
-    }
-
-    // --- LIGHTNING BOLT: scroll-driven Catmull-Rom spline trace ---
+    // --- LIGHTNING BOLT: scroll-driven, fixed position relative to globe ---
     if (lightningBolt && highlight > 0.3) {
-      const { indices } = lightningBolt;
+      const { offsets } = lightningBolt;
 
-      // Collect projected points for the spline
-      const pts = [];
-      for (let i = 0; i < indices.length; i++) {
-        const p = projByIdx[indices[i]];
-        if (p) pts.push({ x: p.sx, y: p.sy, depth: p.depth });
-      }
-      if (pts.length < 4) { /* skip */ }
-      else {
-        // Build a dense smooth path using Catmull-Rom interpolation
-        const SUBDIV = 8;
+      // Convert fixed offsets to screen coordinates using current globe center/radius
+      const pts = offsets.map(o => ({
+        x: cx + o.x * radius,
+        y: cy - o.y * radius,
+      }));
+
+      if (pts.length >= 4) {
+        // Build smooth Catmull-Rom spline
+        const SUBDIV = 10;
         const smoothPath = [];
         for (let i = 0; i < pts.length - 1; i++) {
           const p0 = pts[Math.max(0, i - 1)];
@@ -744,8 +675,7 @@
             const t2 = t * t, t3 = t2 * t;
             const x = 0.5 * ((2*p1.x) + (-p0.x+p2.x)*t + (2*p0.x-5*p1.x+4*p2.x-p3.x)*t2 + (-p0.x+3*p1.x-3*p2.x+p3.x)*t3);
             const y = 0.5 * ((2*p1.y) + (-p0.y+p2.y)*t + (2*p0.y-5*p1.y+4*p2.y-p3.y)*t2 + (-p0.y+3*p1.y-3*p2.y+p3.y)*t3);
-            const d = lerp(p1.depth, p2.depth, t);
-            smoothPath.push({ x, y, depth: d });
+            smoothPath.push({ x, y });
           }
         }
         smoothPath.push(pts[pts.length - 1]);
@@ -762,7 +692,7 @@
         for (let i = 1; i <= headIdx && i < smoothPath.length; i++) {
           const sp = smoothPath[i];
           const prev = smoothPath[i - 1];
-          if (sp.depth < -0.3 || prev.depth < -0.3) continue;
+          // Fixed-position bolt, no depth check needed
 
           // Gradient: bright near head, fading toward start
           const distFromHead = (headIdx - i) / smoothPath.length;
@@ -795,22 +725,21 @@
         }
 
         // Small fork branches at a few points along the bolt
-        for (let b = 0; b < indices.length - 2; b += 3) {
+        for (let b = 0; b < offsets.length - 1; b += 2) {
           const branchStart = b * SUBDIV;
           if (branchStart >= headIdx || branchStart >= smoothPath.length) continue;
           const sp = smoothPath[branchStart];
           const distFromHead = (headIdx - branchStart) / smoothPath.length;
-          const ba = boltAlpha * Math.exp(-distFromHead * 5) * 0.3;
+          const ba = boltAlpha * Math.exp(-distFromHead * 5) * 0.25;
           if (ba < 0.02) continue;
 
-          // Short forked line in a random-ish direction
           const angle = (b * 2.3 + 1.1) % (Math.PI * 2);
-          const forkLen = 15 + (b % 4) * 8;
+          const forkLen = 12 + (b % 3) * 8;
           const fx = sp.x + Math.cos(angle) * forkLen;
           const fy = sp.y + Math.sin(angle) * forkLen;
 
           ctx.strokeStyle = `rgba(34,197,94,${ba})`;
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(sp.x, sp.y);
           ctx.lineTo(fx, fy);
@@ -830,10 +759,11 @@
           ctx.fill();
         }
 
-        // --- ROOT CAUSE NODE: appears when bolt reaches the end ---
+        // --- ROOT CAUSE NODE: at the last point of the bolt path ---
         const rcProgress = Math.max(0, Math.min(1, (highlight - 0.85) / 0.15));
-        if (rootCauseIdx >= 0 && rcProgress > 0) {
-          const rc = projByIdx[rootCauseIdx];
+        const rcPoint = pts[pts.length - 1];
+        if (rcPoint && rcProgress > 0) {
+          const rc = { sx: rcPoint.x, sy: rcPoint.y };
           if (rc) {
             const rcPulse = 0.6 + 0.4 * Math.sin(now * 0.004);
             const a = rcProgress; // no depth fade — always full visibility
@@ -959,17 +889,7 @@
       ctx.fillRect(0, 0, w, h);
     }
 
-    // --- Connection lines ---
-    if (st.lineAlpha > 0.005) {
-      for (const [i, j, dist, avgChaos] of neighborPairs) {
-        const a = projByIdx[i], b = projByIdx[j];
-        if (a.depth < -0.3 && b.depth < -0.3) continue;
-        const lo = st.lineAlpha * lerp(0.18, 0.06, avgChaos);
-        ctx.strokeStyle = `rgba(200,220,210,${lo})`;
-        ctx.lineWidth = lerp(0.3, 0.8, avgChaos);
-        ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
-      }
-    }
+    // --- Connection lines REMOVED for performance ---
 
     // --- Causal highlights (step 3) ---
     drawCausalHighlights(projByIdx, st.causalHighlight, now);
