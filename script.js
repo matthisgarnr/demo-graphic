@@ -319,11 +319,11 @@
       greenOverlay: 0.25, labelOpacity: 1, causalHighlight: 0,
       heroGlow: 0,
     },
-    { // 2 — CSE (causal connections): camera even closer
+    { // 2 — CSE (causal connections): camera even closer, icons fade out
       rotSpeed: 0.001, globeOffY: 0.50, zoom: 1.6,
       stormAlpha: 0.95, normalAlpha: 0.7,
       lineAlpha: 0.3, scatterAmt: 0,
-      greenOverlay: 0.35, labelOpacity: 0.4, causalHighlight: 1,
+      greenOverlay: 0.35, labelOpacity: 0, causalHighlight: 1,
       heroGlow: 0,
     },
   ];
@@ -719,116 +719,142 @@
       }
     }
 
-    // --- LIGHTNING BOLT: smooth dramatic trace (only once fully in step 2) ---
+    // --- LIGHTNING BOLT: smooth Catmull-Rom spline trace ---
     if (lightningBolt && highlight > 0.6) {
       const { indices } = lightningBolt;
       const boltReveal = Math.max(0, Math.min(1, (highlight - 0.6) / 0.4));
 
-      // Cycle: 5s travel, 2s hold at root cause
-      const cycleTime = 7000;
-      const phase = (now % cycleTime) / cycleTime;
-      const travelPhase = Math.min(1, phase / 0.7);
-      const headPos = travelPhase * indices.length;
-
-      for (let s = 0; s < indices.length - 1; s++) {
-        const a = projByIdx[indices[s]];
-        const b = projByIdx[indices[s + 1]];
-        if (!a || !b) continue;
-        const avgDepth = (a.depth + b.depth) / 2;
-        if (avgDepth < -0.2) continue;
-        const depthFade = Math.max(0, (avgDepth + 0.2) / 1.2);
-
-        if (s > headPos) continue;
-
-        // Smooth trail — longer fade, softer falloff
-        const trailDist = headPos - s;
-        const trailFade = Math.exp(-trailDist * 0.1);
-        const headGlow = trailDist < 2.5 ? 1 : trailFade;
-        const alpha = boltReveal * depthFade * (0.25 + headGlow * 0.75);
-
-        // Gentle curve offset
-        const dx = b.sx - a.sx, dy = b.sy - a.sy;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 1) continue;
-        const nx = -dy / len, ny = dx / len;
-        const curve = Math.sin(s * 1.2 + 0.5) * len * 0.1;
-        const cpx = (a.sx + b.sx) / 2 + nx * curve;
-        const cpy = (a.sy + b.sy) / 2 + ny * curve;
-
-        ctx.lineCap = 'round';
-
-        // Widest soft outer glow
-        ctx.strokeStyle = `rgba(34,197,94,${alpha * 0.15})`;
-        ctx.lineWidth = (16 + headGlow * 10) * depthFade;
-        ctx.beginPath();
-        ctx.moveTo(a.sx, a.sy);
-        ctx.quadraticCurveTo(cpx, cpy, b.sx, b.sy);
-        ctx.stroke();
-
-        // Mid glow
-        ctx.strokeStyle = `rgba(34,220,100,${alpha * 0.4})`;
-        ctx.lineWidth = (6 + headGlow * 4) * depthFade;
-        ctx.beginPath();
-        ctx.moveTo(a.sx, a.sy);
-        ctx.quadraticCurveTo(cpx, cpy, b.sx, b.sy);
-        ctx.stroke();
-
-        // Core bright line
-        ctx.strokeStyle = `rgba(180,255,200,${alpha * 0.9})`;
-        ctx.lineWidth = (2.5 + headGlow * 2) * depthFade;
-        ctx.beginPath();
-        ctx.moveTo(a.sx, a.sy);
-        ctx.quadraticCurveTo(cpx, cpy, b.sx, b.sy);
-        ctx.stroke();
-
-        // Node dots along the bolt path
-        if (s % 2 === 0) {
-          ctx.beginPath();
-          ctx.arc(a.sx, a.sy, (1.5 + headGlow * 1.5) * depthFade, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(34,230,100,${alpha * 0.8})`;
-          ctx.fill();
-        }
+      // Collect projected points for the spline
+      const pts = [];
+      for (let i = 0; i < indices.length; i++) {
+        const p = projByIdx[indices[i]];
+        if (p) pts.push({ x: p.sx, y: p.sy, depth: p.depth });
       }
+      if (pts.length < 4) { /* skip */ }
+      else {
+        // Build a dense smooth path using Catmull-Rom interpolation
+        const SUBDIV = 8; // subdivisions per segment
+        const smoothPath = [];
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[Math.max(0, i - 1)];
+          const p1 = pts[i];
+          const p2 = pts[Math.min(pts.length - 1, i + 1)];
+          const p3 = pts[Math.min(pts.length - 1, i + 2)];
+          for (let j = 0; j < SUBDIV; j++) {
+            const t = j / SUBDIV;
+            const t2 = t * t, t3 = t2 * t;
+            const x = 0.5 * ((2*p1.x) + (-p0.x+p2.x)*t + (2*p0.x-5*p1.x+4*p2.x-p3.x)*t2 + (-p0.x+3*p1.x-3*p2.x+p3.x)*t3);
+            const y = 0.5 * ((2*p1.y) + (-p0.y+p2.y)*t + (2*p0.y-5*p1.y+4*p2.y-p3.y)*t2 + (-p0.y+3*p1.y-3*p2.y+p3.y)*t3);
+            const d = lerp(p1.depth, p2.depth, t);
+            smoothPath.push({ x, y, depth: d });
+          }
+        }
+        // Add the last point
+        smoothPath.push(pts[pts.length - 1]);
 
-      // --- ROOT CAUSE NODE: pulsing amber/gold glow at the end ---
-      if (rootCauseIdx >= 0 && travelPhase >= 0.85) {
-        const rc = projByIdx[rootCauseIdx];
-        if (rc && rc.depth > -0.2) {
-          const rcReveal = Math.min(1, (travelPhase - 0.85) / 0.15);
-          const rcPulse = 0.6 + 0.4 * Math.sin(now * 0.004);
-          const rcAlpha = boltReveal * rcReveal * rcPulse;
-          const rcDepth = Math.max(0, (rc.depth + 0.2) / 1.2);
+        // Cycle: 5s travel, 2.5s hold
+        const cycleTime = 7500;
+        const phase = (now % cycleTime) / cycleTime;
+        const travelPhase = Math.min(1, phase / 0.65);
+        const headIdx = Math.floor(travelPhase * (smoothPath.length - 1));
 
-          // Widest outer glow — amber
-          const outerR = 30 + rcPulse * 10;
+        // Draw the path up to the head position
+        const drawPath = (color, width) => {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = width;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
           ctx.beginPath();
-          ctx.arc(rc.sx, rc.sy, outerR, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.12 * rcDepth})`;
-          ctx.fill();
+          let started = false;
+          for (let i = 0; i <= headIdx && i < smoothPath.length; i++) {
+            const sp = smoothPath[i];
+            if (sp.depth < -0.2) { started = false; continue; }
+            const trailDist = (headIdx - i) / SUBDIV;
+            const trailFade = Math.exp(-trailDist * 0.12);
+            const alpha = boltReveal * trailFade;
+            if (alpha < 0.02) { started = false; continue; }
+            if (!started) { ctx.moveTo(sp.x, sp.y); started = true; }
+            else { ctx.lineTo(sp.x, sp.y); }
+          }
+          ctx.stroke();
+        };
 
-          // Middle glow
-          ctx.beginPath();
-          ctx.arc(rc.sx, rc.sy, 16, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.3 * rcDepth})`;
-          ctx.fill();
+        // Three layers: wide glow, mid, core
+        const headAlpha = boltReveal;
+        drawPath(`rgba(34,197,94,${headAlpha * 0.1})`, 18);
+        drawPath(`rgba(34,220,100,${headAlpha * 0.35})`, 6);
+        drawPath(`rgba(180,255,200,${headAlpha * 0.85})`, 2.5);
 
-          // Core dot — bright amber
-          ctx.beginPath();
-          ctx.arc(rc.sx, rc.sy, 6, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255,210,60,${rcAlpha * 0.95 * rcDepth})`;
-          ctx.fill();
+        // Traveling head dot
+        if (headIdx < smoothPath.length) {
+          const hp = smoothPath[headIdx];
+          if (hp.depth > -0.2) {
+            ctx.beginPath();
+            ctx.arc(hp.x, hp.y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(200,255,220,${boltReveal * 0.9})`;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(hp.x, hp.y, 12, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(34,197,94,${boltReveal * 0.15})`;
+            ctx.fill();
+          }
+        }
 
-          // White hot center
-          ctx.beginPath();
-          ctx.arc(rc.sx, rc.sy, 2.5, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255,255,220,${rcAlpha * 0.9 * rcDepth})`;
-          ctx.fill();
+        // --- ROOT CAUSE NODE: large pulsing amber marker ---
+        if (rootCauseIdx >= 0 && travelPhase >= 0.85) {
+          const rc = projByIdx[rootCauseIdx];
+          if (rc && rc.depth > -0.2) {
+            const rcReveal = Math.min(1, (travelPhase - 0.85) / 0.15);
+            const rcPulse = 0.6 + 0.4 * Math.sin(now * 0.004);
+            const rcAlpha = boltReveal * rcReveal;
+            const rcDepth = Math.max(0, (rc.depth + 0.2) / 1.2);
 
-          // "Root Cause" label — bigger
-          ctx.font = '600 12px Inter, sans-serif';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = `rgba(255,200,50,${rcAlpha * 0.95 * rcDepth})`;
-          ctx.fillText('Root Cause', rc.sx + 18, rc.sy);
+            // Widest outer glow
+            ctx.beginPath();
+            ctx.arc(rc.sx, rc.sy, 40 + rcPulse * 12, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.1 * rcDepth})`;
+            ctx.fill();
+
+            // Mid glow
+            ctx.beginPath();
+            ctx.arc(rc.sx, rc.sy, 22, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.25 * rcDepth})`;
+            ctx.fill();
+
+            // Core
+            ctx.beginPath();
+            ctx.arc(rc.sx, rc.sy, 8, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,210,60,${rcAlpha * 0.95 * rcDepth})`;
+            ctx.fill();
+
+            // White hot center
+            ctx.beginPath();
+            ctx.arc(rc.sx, rc.sy, 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,220,${rcAlpha * 0.9 * rcDepth})`;
+            ctx.fill();
+
+            // Label — pill background + large text
+            const labelText = 'Root Cause';
+            ctx.font = '700 16px Inter, sans-serif';
+            const tw = ctx.measureText(labelText).width;
+            const lx = rc.sx + 22, ly = rc.sy;
+            const pillPad = 8;
+
+            // Dark pill behind label
+            const pillW = tw + pillPad * 2, pillH = 28;
+            ctx.beginPath();
+            ctx.roundRect(lx - pillPad, ly - pillH / 2, pillW, pillH, 6);
+            ctx.fillStyle = `rgba(20,10,0,${rcAlpha * 0.7 * rcDepth})`;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(245,158,11,${rcAlpha * 0.5 * rcDepth})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Label text
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = `rgba(255,200,50,${rcAlpha * 0.95 * rcDepth})`;
+            ctx.fillText(labelText, lx, ly);
+          }
         }
       }
     }
