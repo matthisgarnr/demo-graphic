@@ -5,9 +5,9 @@
 (function () {
   'use strict';
 
-  const PARTICLE_COUNT = 15000;
-  const CONNECTION_DISTANCE = 0.1;
-  const MAX_CONNECTIONS = 4000;
+  const PARTICLE_COUNT = 8000;
+  const CONNECTION_DISTANCE = 0.08;
+  const MAX_CONNECTIONS = 2000;
   const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
   let scrollProgress = 0;
@@ -80,10 +80,10 @@
       const isStorm = chaos > 0.55;
       const disp = isStorm ? 1 + chaos * 0.08 * (0.5 + Math.random()) : 1;
 
-      // Grain shape: weighted toward subtle types (0=streak, 1=tiny square, 2=dot)
+      // Grain shape: mostly dots and small squares for cleaner look
       const gr = Math.random();
-      const grainType = gr < 0.45 ? 0 : gr < 0.8 ? 1 : 2;
-      const baseSize = isStorm ? (0.9 + chaos * 1.2 + Math.random() * 0.4) : (0.4 + (1 - chaos) * 0.4 + Math.random() * 0.3);
+      const grainType = gr < 0.15 ? 0 : gr < 0.55 ? 1 : 2;
+      const baseSize = isStorm ? (1.8 + chaos * 2.0 + Math.random() * 0.6) : (0.9 + (1 - chaos) * 0.7 + Math.random() * 0.5);
 
       particles.push({
         baseX: x * disp, baseY: y * disp, baseZ: z * disp,
@@ -100,12 +100,12 @@
         grainSin: Math.sin(Math.random() * Math.PI),
         grainAspect: 0.15 + Math.random() * 0.3,
         grainSeed: Math.random(),
-        colorR: Math.round(lerp(220, 120, chaos * 0.9)),
-        colorG: Math.round(lerp(230, 180, chaos * 0.9)),
-        colorB: Math.round(lerp(235, 140, chaos * 0.85)),
-        scatterX: x * 1.5 + (Math.random() - 0.5) * 1.5,
-        scatterY: y * 1.5 + (Math.random() - 0.5) * 1.5,
-        scatterZ: z * 1.5 + (Math.random() - 0.5) * 1.5,
+        colorR: Math.round(lerp(245, 190, chaos * 0.6)),
+        colorG: Math.round(lerp(250, 230, chaos * 0.6)),
+        colorB: Math.round(lerp(248, 210, chaos * 0.55)),
+        scatterX: x * 2.0 + (Math.random() - 0.5) * 2.0,
+        scatterY: y * 2.0 + (Math.random() - 0.5) * 2.0,
+        scatterZ: z * 2.0 + (Math.random() - 0.5) * 2.0,
       });
     }
 
@@ -297,18 +297,18 @@
   const HERO_INTRO = 0.08; // scrollProgress range for hero→step0 transition
 
   const HERO_STATE = {
-    rotSpeed: 0.003, globeOffY: 1.54, zoom: 1.44,
-    stormAlpha: 1.0, normalAlpha: 0.85,
-    lineAlpha: 0.25, scatterAmt: 0,
+    rotSpeed: 0.003, globeOffY: 1.3, zoom: 1.6,
+    stormAlpha: 1.0, normalAlpha: 1.0,
+    lineAlpha: 0.3, scatterAmt: 0,
     greenOverlay: 0.5, labelOpacity: 0, causalHighlight: 0,
     heroGlow: 1,
   };
 
   const STEPS = [
     { // 0 — Problem Statement (chaos): globe rises and explodes
-      rotSpeed: 0.005, globeOffY: 0.5, zoom: 0.85,
-      stormAlpha: 0.65, normalAlpha: 0.45,
-      lineAlpha: 0.02, scatterAmt: 1,
+      rotSpeed: 0.006, globeOffY: 0.5, zoom: 0.9,
+      stormAlpha: 0.75, normalAlpha: 0.5,
+      lineAlpha: 0.01, scatterAmt: 1.3,
       greenOverlay: 0, labelOpacity: 0, causalHighlight: 0,
       heroGlow: 0,
     },
@@ -440,19 +440,34 @@
       'M4 12.01L4.01 11.9989', 'M4 18.01L4.01 17.9989',
       'M8 12L20 12', 'M8 18L20 18',
     ],
+    // App/service window
+    appWindow: [
+      'M2 19.4V4.6C2 4.26863 2.26863 4 2.6 4H21.4C21.7314 4 22 4.26863 22 4.6V19.4C22 19.7314 21.7314 20 21.4 20H2.6C2.26863 20 2 19.7314 2 19.4Z',
+      'M2 8H22',
+      'M5 6.01L5.01 5.99889', 'M7 6.01L7.01 5.99889', 'M9 6.01L9.01 5.99889',
+    ],
+    // Package/deploy box
+    package: [
+      'M20 12V5.74853C20 5.5894 19.9368 5.43679 19.8243 5.32426L16.6757 2.17574C16.5632 2.06321 16.4106 2 16.2515 2H4.6C4.26863 2 4 2.26863 4 2.6V21.4C4 21.7314 4.26863 22 4.6 22H11',
+      'M14 19L17 22L22 17',
+      'M16 2V5.4C16 5.73137 16.2686 6 16.6 6H20',
+    ],
+    // Metrics/traces glyph
+    metrics: [
+      'M3 20L8 15L13 18L21 10',
+      'M17 10H21V14',
+    ],
   };
 
   const PWM_LABELS = [
-    { icon: 'alert', label: 'Alert', idx: null },
     { icon: 'database', label: 'Database', idx: null },
-    { icon: 'server', label: 'API Gateway', idx: null },
-    { icon: 'queue', label: 'Queue', idx: null },
-    { icon: 'terminal', label: 'Service', idx: null },
-    { icon: 'server', label: 'Server', idx: null },
-    { icon: 'cube', label: 'Deploy', idx: null },
-    { icon: 'cloud', label: 'Cluster', idx: null },
-    { icon: 'activity', label: 'Monitor', idx: null },
+    { icon: 'alert', label: 'Alert', idx: null },
     { icon: 'doc', label: 'Runbook', idx: null },
+    { icon: 'people', label: 'Team', idx: null },
+    { icon: 'appWindow', label: 'Service', idx: null },
+    { icon: 'server', label: 'Server', idx: null },
+    { icon: 'package', label: 'Deploy', idx: null },
+    { icon: 'metrics', label: 'Traces', idx: null },
   ];
 
   function assignLabelParticles() {
@@ -499,17 +514,23 @@
     ctx.restore();
   }
 
-  function drawLabels(projByIdx, labelOpacity) {
+  function drawLabels(projByIdx, labelOpacity, now) {
     if (labelOpacity < 0.01) return;
 
-    for (const lbl of PWM_LABELS) {
+    for (let li = 0; li < PWM_LABELS.length; li++) {
+      const lbl = PWM_LABELS[li];
       if (lbl.idx === null) continue;
       const p = projByIdx[lbl.idx];
       if (!p || p.depth < -0.1) continue;
 
-      // Only show front-facing labels
-      if (p.depth < -0.1) continue;
-      const alpha = labelOpacity;
+      // Staggered reveal per label
+      const staggerDelay = li * 0.12;
+      const revealT = Math.max(0, Math.min(1, (labelOpacity - staggerDelay) / (1 - staggerDelay)));
+      if (revealT < 0.01) continue;
+
+      // Pulse glow — each label pulses at its own phase
+      const pulse = 0.7 + 0.3 * Math.sin(now * 0.002 + li * 1.7);
+      const alpha = revealT * pulse;
 
       const iconSize = 16;
       const padX = 8, padY = 5;
@@ -522,6 +543,13 @@
       const pillX = p.sx + 10;
       const pillY = p.sy - pillH / 2;
 
+      // Glow behind pill
+      const glowA = alpha * 0.15;
+      ctx.beginPath();
+      ctx.arc(pillX + pillW / 2, pillY + pillH / 2, pillW * 0.7, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(34,197,94,${glowA})`;
+      ctx.fill();
+
       // Glassy pill background
       const pillR = pillH / 2;
       ctx.beginPath();
@@ -533,9 +561,9 @@
       ctx.arcTo(pillX, pillY + pillH, pillX, pillY + pillH - pillR, pillR);
       ctx.arcTo(pillX, pillY, pillX + pillR, pillY, pillR);
       ctx.closePath();
-      ctx.fillStyle = `rgba(255,255,255,${0.12 * alpha})`;
+      ctx.fillStyle = `rgba(255,255,255,${0.14 * alpha})`;
       ctx.fill();
-      ctx.strokeStyle = `rgba(255,255,255,${0.25 * alpha})`;
+      ctx.strokeStyle = `rgba(34,197,94,${0.35 * alpha})`;
       ctx.lineWidth = 0.5;
       ctx.stroke();
 
@@ -557,23 +585,19 @@
   }
 
   // ============================================================
-  // CAUSAL HIGHLIGHTS — green connection paths for step 3
+  // CAUSAL HIGHLIGHTS — lightning bolt + ambient traces
   // ============================================================
-  let causalTraces = [];   // Array of trace paths (each is an array of particle indices)
+  let causalTraces = [];     // Ambient background traces
+  let lightningBolt = null;  // The main dramatic trace
+  let rootCauseIdx = -1;     // Index of the "smoking gun" particle
 
   function buildCausalPairs() {
-    // Build long-distance trace paths that span the globe
-    // Instead of short neighbor connections, we create chains that hop across particles
     causalTraces = [];
-    const used = new Set();
     const N = particles.length;
 
-    // Build a spatial index for finding particles at medium distance (not just neighbors)
-    // We want connections that SPAN the globe, not cluster locally
     function findDistantParticle(fromIdx, minDist, maxDist, exclude) {
       const fp = particles[fromIdx];
       let best = -1, bestDist = Infinity;
-      // Sample random particles to find ones at the right distance
       for (let attempt = 0; attempt < 200; attempt++) {
         const j = Math.floor(Math.random() * N);
         if (j === fromIdx || exclude.has(j)) continue;
@@ -589,10 +613,37 @@
       return best;
     }
 
-    // Create ~25 trace paths, each with 5-12 hops across the globe
-    for (let t = 0; t < 25; t++) {
-      const chainLen = 5 + Math.floor(Math.random() * 8);
-      // Start from a random particle, prefer front-facing ones spread across globe
+    // --- Build the LIGHTNING BOLT: one dramatic 10-15 hop trace ---
+    {
+      // Start from a front-facing, chaotic particle
+      const candidates = particles
+        .map((p, i) => ({ i, score: p.chaos * 0.4 + p.origZ * 0.4 + Math.random() * 0.2 }))
+        .filter(c => particles[c.i].origZ > 0)
+        .sort((a, b) => b.score - a.score);
+      const startIdx = candidates[0].i;
+      const chain = [startIdx];
+      const chainSet = new Set([startIdx]);
+
+      for (let hop = 0; hop < 14; hop++) {
+        const lastIdx = chain[chain.length - 1];
+        const next = findDistantParticle(lastIdx, 0.2, 0.8, chainSet);
+        if (next === -1) break;
+        chain.push(next);
+        chainSet.add(next);
+      }
+
+      if (chain.length >= 8) {
+        rootCauseIdx = chain[chain.length - 1];
+        lightningBolt = {
+          indices: chain,
+          speed: 0.25,
+        };
+      }
+    }
+
+    // --- Build ambient background traces (dimmer, thinner) ---
+    for (let t = 0; t < 15; t++) {
+      const chainLen = 4 + Math.floor(Math.random() * 6);
       let startIdx = Math.floor(Math.random() * N);
       const chain = [startIdx];
       const chainSet = new Set([startIdx]);
@@ -621,78 +672,132 @@
   function drawCausalHighlights(projByIdx, highlight, now) {
     if (highlight < 0.01) return;
 
+    // --- Ambient background traces (dim) ---
     for (let t = 0; t < causalTraces.length; t++) {
       const trace = causalTraces[t];
       const { indices, speed, offset, width, hue } = trace;
-
-      // Staggered reveal per trace
-      const traceReveal = Math.max(0, Math.min(1, highlight * 2.5 - (t / causalTraces.length) * 1.5));
+      const traceReveal = Math.max(0, Math.min(1, highlight * 2 - (t / causalTraces.length) * 1.2));
       if (traceReveal < 0.01) continue;
-
-      // Traveling pulse position along the chain (0 to chain length, wrapping)
       const pulsePos = ((now * 0.001 * speed + offset) % 1) * indices.length;
 
-      // Draw each segment of the chain
       for (let s = 0; s < indices.length - 1; s++) {
         const a = projByIdx[indices[s]];
         const b = projByIdx[indices[s + 1]];
         if (!a || !b) continue;
-
-        // Skip back-facing segments
         const avgDepth = (a.depth + b.depth) / 2;
         if (avgDepth < -0.2) continue;
         const depthFade = Math.max(0, (avgDepth + 0.2) / 1.2);
-
-        // Pulse: brightest near pulsePos, fading outward
-        const distFromPulse = Math.min(
-          Math.abs(s - pulsePos),
-          Math.abs(s - pulsePos + indices.length),
-          Math.abs(s - pulsePos - indices.length)
-        );
+        const distFromPulse = Math.min(Math.abs(s - pulsePos), Math.abs(s - pulsePos + indices.length), Math.abs(s - pulsePos - indices.length));
         const pulseIntensity = Math.exp(-distFromPulse * distFromPulse * 0.15);
-
-        // Ambient glow + pulse peak
-        const ambient = 0.06;
-        const alpha = traceReveal * depthFade * (ambient + pulseIntensity * 0.45) * highlight;
+        const alpha = traceReveal * depthFade * (0.03 + pulseIntensity * 0.2) * highlight;
         if (alpha < 0.005) continue;
+        const r = hue === 0 ? 34 : 20, g = hue === 0 ? 197 : 200, bC = hue === 0 ? 94 : 160;
+        ctx.strokeStyle = `rgba(${r},${g},${bC},${alpha})`;
+        ctx.lineWidth = width * 0.6 * depthFade;
+        ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+      }
+    }
 
-        // Color: mostly green, some teal variation
-        const r = hue === 0 ? 34 : 20;
-        const g = hue === 0 ? 197 : 200;
-        const bCol = hue === 0 ? 94 : 160;
+    // --- LIGHTNING BOLT: the dramatic single trace ---
+    if (lightningBolt && highlight > 0.3) {
+      const bolt = lightningBolt;
+      const { indices } = bolt;
+      const boltReveal = Math.max(0, Math.min(1, (highlight - 0.3) / 0.7));
 
-        // Draw curved segment using quadratic bezier through midpoint offset
-        const mx = (a.sx + b.sx) / 2;
-        const my = (a.sy + b.sy) / 2;
-        // Offset control point perpendicular to the line for subtle curve
-        const dx = b.sx - a.sx;
-        const dy = b.sy - a.sy;
+      // Traveling pulse that sweeps once along the bolt then holds at root cause
+      // Cycle: 6 seconds total — 4s travel, 2s hold at root cause
+      const cycleTime = 6000;
+      const phase = (now % cycleTime) / cycleTime;
+      const travelPhase = Math.min(1, phase / 0.65);  // 0-1 over first 65% of cycle
+      const headPos = travelPhase * indices.length;
+
+      for (let s = 0; s < indices.length - 1; s++) {
+        const a = projByIdx[indices[s]];
+        const b = projByIdx[indices[s + 1]];
+        if (!a || !b) continue;
+        const avgDepth = (a.depth + b.depth) / 2;
+        if (avgDepth < -0.3) continue;
+        const depthFade = Math.max(0, (avgDepth + 0.3) / 1.3);
+
+        // Only draw segments the pulse has reached
+        if (s > headPos) continue;
+
+        // Trail brightness: segments near the head are brightest, tail fades
+        const trailDist = headPos - s;
+        const trailFade = Math.exp(-trailDist * trailDist * 0.02);
+        const headGlow = trailDist < 1.5 ? 1 : trailFade;
+
+        const alpha = boltReveal * depthFade * (0.15 + headGlow * 0.7);
+
+        // Zigzag offset for lightning feel
+        const dx = b.sx - a.sx, dy = b.sy - a.sy;
         const len = Math.sqrt(dx * dx + dy * dy);
         if (len < 1) continue;
-        const nx = -dy / len;
-        const ny = dx / len;
-        const curvature = Math.sin(s * 1.7 + t) * len * 0.15;
-        const cpx = mx + nx * curvature;
-        const cpy = my + ny * curvature;
+        const nx = -dy / len, ny = dx / len;
+        const zigzag = Math.sin(s * 2.8) * len * 0.2;
+        const cpx = (a.sx + b.sx) / 2 + nx * zigzag;
+        const cpy = (a.sy + b.sy) / 2 + ny * zigzag;
 
-        ctx.strokeStyle = `rgba(${r},${g},${bCol},${alpha})`;
-        ctx.lineWidth = width * (0.5 + pulseIntensity * 0.5) * depthFade;
+        // Bright green with glow
+        ctx.strokeStyle = `rgba(34,230,100,${alpha})`;
+        ctx.lineWidth = (2.5 + headGlow * 2) * depthFade;
         ctx.beginPath();
         ctx.moveTo(a.sx, a.sy);
         ctx.quadraticCurveTo(cpx, cpy, b.sx, b.sy);
         ctx.stroke();
 
-        // Bright node at pulse peak
-        if (pulseIntensity > 0.5) {
-          const nodeAlpha = traceReveal * depthFade * pulseIntensity * 0.6 * highlight;
-          const nodeSize = 2 + pulseIntensity * 2;
-          const progress = pulsePos - Math.floor(pulsePos);
-          const px = a.sx + (b.sx - a.sx) * progress;
-          const py = a.sy + (b.sy - a.sy) * progress;
+        // Outer glow layer
+        if (headGlow > 0.3) {
+          ctx.strokeStyle = `rgba(34,197,94,${alpha * 0.3})`;
+          ctx.lineWidth = (5 + headGlow * 4) * depthFade;
           ctx.beginPath();
-          ctx.arc(s === Math.floor(pulsePos) ? px : (a.sx + b.sx) / 2, s === Math.floor(pulsePos) ? py : (a.sy + b.sy) / 2, nodeSize, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${r},${g},${bCol},${nodeAlpha})`;
+          ctx.moveTo(a.sx, a.sy);
+          ctx.quadraticCurveTo(cpx, cpy, b.sx, b.sy);
+          ctx.stroke();
+        }
+
+        // Node dots along the bolt path
+        if (s % 2 === 0) {
+          ctx.beginPath();
+          ctx.arc(a.sx, a.sy, (1.5 + headGlow * 1.5) * depthFade, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(34,230,100,${alpha * 0.8})`;
           ctx.fill();
+        }
+      }
+
+      // --- ROOT CAUSE NODE: pulsing amber/gold glow at the end ---
+      if (rootCauseIdx >= 0 && travelPhase >= 0.9) {
+        const rc = projByIdx[rootCauseIdx];
+        if (rc && rc.depth > -0.2) {
+          const rcReveal = Math.min(1, (travelPhase - 0.9) / 0.1);
+          const rcPulse = 0.7 + 0.3 * Math.sin(now * 0.005);
+          const rcAlpha = boltReveal * rcReveal * rcPulse;
+          const rcDepth = Math.max(0, (rc.depth + 0.2) / 1.2);
+
+          // Large outer glow — amber
+          const outerR = 18 + rcPulse * 6;
+          ctx.beginPath();
+          ctx.arc(rc.sx, rc.sy, outerR, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.15 * rcDepth})`;
+          ctx.fill();
+
+          // Middle glow
+          ctx.beginPath();
+          ctx.arc(rc.sx, rc.sy, 10, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.35 * rcDepth})`;
+          ctx.fill();
+
+          // Core dot — bright amber
+          ctx.beginPath();
+          ctx.arc(rc.sx, rc.sy, 4, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,200,50,${rcAlpha * 0.9 * rcDepth})`;
+          ctx.fill();
+
+          // "Root Cause" label
+          ctx.font = '600 10px Inter, sans-serif';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.9 * rcDepth})`;
+          ctx.fillText('Root Cause', rc.sx + 14, rc.sy);
         }
       }
     }
@@ -762,7 +867,7 @@
     sorted.sort((a, b) => a.depth - b.depth);
 
     // --- Dark overlay behind orb, on top of background ---
-    const overlayAlpha = debugOverrides.overlayAlpha !== undefined ? debugOverrides.overlayAlpha : 0.46;
+    const overlayAlpha = debugOverrides.overlayAlpha !== undefined ? debugOverrides.overlayAlpha : 0.4;
     if (overlayAlpha > 0) {
       ctx.fillStyle = `rgba(0,0,0,${overlayAlpha})`;
       ctx.fillRect(0, 0, w, h);
@@ -785,10 +890,11 @@
 
     // --- Hero glow (step 0) — soft radial light behind particles ---
     if (st.heroGlow > 0.01) {
-      const glowR = radius * 0.8;
+      const glowR = radius * 1.2;
       const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
-      grad.addColorStop(0, `rgba(180,220,200,${0.18 * st.heroGlow})`);
-      grad.addColorStop(0.4, `rgba(140,200,180,${0.08 * st.heroGlow})`);
+      grad.addColorStop(0, `rgba(210,240,225,${0.35 * st.heroGlow})`);
+      grad.addColorStop(0.25, `rgba(180,220,200,${0.2 * st.heroGlow})`);
+      grad.addColorStop(0.5, `rgba(140,200,180,${0.1 * st.heroGlow})`);
       grad.addColorStop(1, 'rgba(140,200,180,0)');
       ctx.fillStyle = grad;
       ctx.fillRect(cx - glowR, cy - glowR, glowR * 2, glowR * 2);
@@ -825,7 +931,7 @@
     drawGreenOverlay(cx, cy, radius * 0.7, st.greenOverlay);
 
     // --- PWM labels (step 2) ---
-    drawLabels(projByIdx, st.labelOpacity);
+    drawLabels(projByIdx, st.labelOpacity, now);
 
     requestAnimationFrame(renderOptimized);
   }

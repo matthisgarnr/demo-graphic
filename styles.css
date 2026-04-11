@@ -42,6 +42,17 @@ body {
   min-height: 100vh;
 }
 
+/* Subtle the terrain texture — reduce intensity */
+.site-wrapper::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(10,31,30,0.5);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 20px;
+}
+
 a {
   text-decoration: none;
   color: inherit;
@@ -119,8 +130,15 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 32px;
-  position: relative;
+  padding: 20px 40px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10,31,30,0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.3s;
 }
 
 .nav-logo {
@@ -130,7 +148,7 @@ img {
 
 .logo-text {
   font-family: 'Host Grotesk', sans-serif;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -142,21 +160,21 @@ img {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   background: rgba(255,255,255,0.80);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255,255,255,0.3);
   border-radius: 12px;
-  padding: 4px 6px;
+  padding: 5px 8px;
 }
 
 .nav-links-pill a {
   font-family: 'Host Grotesk', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   color: #0F1828;
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-radius: 8px;
   transition: color 0.2s, background 0.2s;
   white-space: nowrap;
@@ -182,7 +200,7 @@ img {
 }
 
 .nav-login {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
 }
 
@@ -274,6 +292,9 @@ img {
 
 .hero .nav {
   color: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .hero .nav-login {
@@ -369,7 +390,7 @@ img {
   position: relative;
   height: 750vh;
   margin-top: -60vh;
-  z-index: 0;
+  z-index: 2;
 }
 
 .scroll-sticky {
