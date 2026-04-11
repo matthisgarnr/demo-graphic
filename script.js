@@ -291,23 +291,23 @@
   };
 
   const STEPS = [
-    { // 0 — Problem Statement (chaos): globe rises, icons scatter with particles
-      rotSpeed: 0.006, globeOffY: 0.5, zoom: 1.0,
+    { // 0 — Problem Statement (chaos): globe rises to center, icons scatter
+      rotSpeed: 0.006, globeOffY: 0.3, zoom: 1.0,
       stormAlpha: 0.75, normalAlpha: 0.5,
       lineAlpha: 0.01, scatterAmt: 1.3,
       greenOverlay: 0, labelOpacity: 0.3, causalHighlight: 0,
       heroGlow: 0,
     },
-    { // 1 — PWM (converge + labels): globe centered, camera comes closer
-      rotSpeed: 0.002, globeOffY: 0.50, zoom: 1.4,
-      stormAlpha: 0.95, normalAlpha: 0.65,
+    { // 1 — PWM (converge + labels): globe centered on screen
+      rotSpeed: 0.002, globeOffY: 0.15, zoom: 1.2,
+      stormAlpha: 0.95, normalAlpha: 0.75,
       lineAlpha: 0.2, scatterAmt: 0,
       greenOverlay: 0.25, labelOpacity: 1, causalHighlight: 0,
       heroGlow: 0,
     },
-    { // 2 — CSE (causal connections): camera even closer, icons fade out, globe stops
-      rotSpeed: 0, globeOffY: 0.50, zoom: 1.6,
-      stormAlpha: 0.95, normalAlpha: 0.7,
+    { // 2 — CSE (causal connections): globe stays centered, stops spinning
+      rotSpeed: 0, globeOffY: 0.15, zoom: 1.3,
+      stormAlpha: 0.95, normalAlpha: 0.8,
       lineAlpha: 0.3, scatterAmt: 0,
       greenOverlay: 0.35, labelOpacity: 0, causalHighlight: 1,
       heroGlow: 0,
