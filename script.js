@@ -470,21 +470,35 @@
     { icon: 'metrics', idx: null },
     { icon: 'cloud', idx: null },
     { icon: 'terminal', idx: null },
+    { icon: 'cube', idx: null },
+    { icon: 'activity', idx: null },
     { icon: 'database', idx: null },
     { icon: 'alert', idx: null },
     { icon: 'server', idx: null },
+    { icon: 'doc', idx: null },
+    { icon: 'people', idx: null },
+    { icon: 'appWindow', idx: null },
+    { icon: 'cloud', idx: null },
+    { icon: 'package', idx: null },
+    { icon: 'terminal', idx: null },
+    { icon: 'metrics', idx: null },
     { icon: 'cube', idx: null },
+    { icon: 'database', idx: null },
+    { icon: 'server', idx: null },
+    { icon: 'alert', idx: null },
+    { icon: 'activity', idx: null },
+    { icon: 'doc', idx: null },
   ];
 
   function assignLabelParticles() {
-    // Pick well-distributed, front-facing, chaotic particles for labels
+    // Pick well-distributed particles for labels — allow back-facing ones too for more coverage
     const candidates = particles
-      .map((p, i) => ({ i, score: p.chaos * 0.5 + p.origZ * 0.3 + Math.abs(p.origY) * -0.2, p }))
-      .filter(c => c.p.chaos > 0.3 && c.p.origZ > -0.2)
+      .map((p, i) => ({ i, score: p.chaos * 0.4 + p.origZ * 0.3 + Math.random() * 0.3, p }))
+      .filter(c => c.p.chaos > 0.2)
       .sort((a, b) => b.score - a.score);
 
     const used = new Set();
-    const minDist = 0.4;
+    const minDist = 0.25;
     let assigned = 0;
 
     for (const c of candidates) {
@@ -539,24 +553,34 @@
       const alpha = revealT * pulse;
 
       const iconSize = 20;
+      const depthFade = Math.max(0, (p.depth + 0.1) / 1.1);
+      const finalAlpha = alpha * depthFade;
+      if (finalAlpha < 0.02) continue;
 
-      // Outer glow behind icon
-      const glowR = iconSize * 1.4;
+      // Outer glow halo
+      const glowR = iconSize * 1.8;
       ctx.beginPath();
       ctx.arc(p.sx, p.sy, glowR, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(34,197,94,${alpha * 0.18})`;
+      ctx.fillStyle = `rgba(34,197,94,${finalAlpha * 0.2})`;
       ctx.fill();
 
-      // Inner glow
+      // Solid dark background disc so icon reads on top of particles
       ctx.beginPath();
-      ctx.arc(p.sx, p.sy, iconSize * 0.8, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(34,197,94,${alpha * 0.1})`;
+      ctx.arc(p.sx, p.sy, iconSize * 0.72, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(10,31,30,${finalAlpha * 0.7})`;
       ctx.fill();
+
+      // Inner green ring
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, iconSize * 0.72, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(34,197,94,${finalAlpha * 0.5})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
       // Draw icon centered on particle
       const paths = ICONOIR[lbl.icon];
       if (paths) {
-        drawIconPaths(paths, p.sx - iconSize / 2, p.sy - iconSize / 2, iconSize, alpha);
+        drawIconPaths(paths, p.sx - iconSize / 2, p.sy - iconSize / 2, iconSize, finalAlpha);
       }
     }
   }
@@ -695,10 +719,10 @@
       }
     }
 
-    // --- LIGHTNING BOLT: smooth dramatic trace ---
-    if (lightningBolt && highlight > 0.2) {
+    // --- LIGHTNING BOLT: smooth dramatic trace (only once fully in step 2) ---
+    if (lightningBolt && highlight > 0.6) {
       const { indices } = lightningBolt;
-      const boltReveal = Math.max(0, Math.min(1, (highlight - 0.2) / 0.6));
+      const boltReveal = Math.max(0, Math.min(1, (highlight - 0.6) / 0.4));
 
       // Cycle: 5s travel, 2s hold at root cause
       const cycleTime = 7000;
@@ -718,31 +742,40 @@
 
         // Smooth trail — longer fade, softer falloff
         const trailDist = headPos - s;
-        const trailFade = Math.exp(-trailDist * 0.15);
-        const headGlow = trailDist < 2 ? 1 : trailFade;
-        const alpha = boltReveal * depthFade * (0.1 + headGlow * 0.75);
+        const trailFade = Math.exp(-trailDist * 0.1);
+        const headGlow = trailDist < 2.5 ? 1 : trailFade;
+        const alpha = boltReveal * depthFade * (0.25 + headGlow * 0.75);
 
-        // Gentle curve offset (not zigzag)
+        // Gentle curve offset
         const dx = b.sx - a.sx, dy = b.sy - a.sy;
         const len = Math.sqrt(dx * dx + dy * dy);
         if (len < 1) continue;
         const nx = -dy / len, ny = dx / len;
-        const curve = Math.sin(s * 1.2 + 0.5) * len * 0.12;
+        const curve = Math.sin(s * 1.2 + 0.5) * len * 0.1;
         const cpx = (a.sx + b.sx) / 2 + nx * curve;
         const cpy = (a.sy + b.sy) / 2 + ny * curve;
 
-        // Wide soft outer glow
-        ctx.strokeStyle = `rgba(34,197,94,${alpha * 0.2})`;
-        ctx.lineWidth = (8 + headGlow * 6) * depthFade;
         ctx.lineCap = 'round';
+
+        // Widest soft outer glow
+        ctx.strokeStyle = `rgba(34,197,94,${alpha * 0.15})`;
+        ctx.lineWidth = (16 + headGlow * 10) * depthFade;
+        ctx.beginPath();
+        ctx.moveTo(a.sx, a.sy);
+        ctx.quadraticCurveTo(cpx, cpy, b.sx, b.sy);
+        ctx.stroke();
+
+        // Mid glow
+        ctx.strokeStyle = `rgba(34,220,100,${alpha * 0.4})`;
+        ctx.lineWidth = (6 + headGlow * 4) * depthFade;
         ctx.beginPath();
         ctx.moveTo(a.sx, a.sy);
         ctx.quadraticCurveTo(cpx, cpy, b.sx, b.sy);
         ctx.stroke();
 
         // Core bright line
-        ctx.strokeStyle = `rgba(34,230,110,${alpha})`;
-        ctx.lineWidth = (2 + headGlow * 1.5) * depthFade;
+        ctx.strokeStyle = `rgba(180,255,200,${alpha * 0.9})`;
+        ctx.lineWidth = (2.5 + headGlow * 2) * depthFade;
         ctx.beginPath();
         ctx.moveTo(a.sx, a.sy);
         ctx.quadraticCurveTo(cpx, cpy, b.sx, b.sy);
@@ -758,38 +791,44 @@
       }
 
       // --- ROOT CAUSE NODE: pulsing amber/gold glow at the end ---
-      if (rootCauseIdx >= 0 && travelPhase >= 0.9) {
+      if (rootCauseIdx >= 0 && travelPhase >= 0.85) {
         const rc = projByIdx[rootCauseIdx];
         if (rc && rc.depth > -0.2) {
-          const rcReveal = Math.min(1, (travelPhase - 0.9) / 0.1);
-          const rcPulse = 0.7 + 0.3 * Math.sin(now * 0.005);
+          const rcReveal = Math.min(1, (travelPhase - 0.85) / 0.15);
+          const rcPulse = 0.6 + 0.4 * Math.sin(now * 0.004);
           const rcAlpha = boltReveal * rcReveal * rcPulse;
           const rcDepth = Math.max(0, (rc.depth + 0.2) / 1.2);
 
-          // Large outer glow — amber
-          const outerR = 18 + rcPulse * 6;
+          // Widest outer glow — amber
+          const outerR = 30 + rcPulse * 10;
           ctx.beginPath();
           ctx.arc(rc.sx, rc.sy, outerR, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.15 * rcDepth})`;
+          ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.12 * rcDepth})`;
           ctx.fill();
 
           // Middle glow
           ctx.beginPath();
-          ctx.arc(rc.sx, rc.sy, 10, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.35 * rcDepth})`;
+          ctx.arc(rc.sx, rc.sy, 16, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.3 * rcDepth})`;
           ctx.fill();
 
           // Core dot — bright amber
           ctx.beginPath();
-          ctx.arc(rc.sx, rc.sy, 4, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255,200,50,${rcAlpha * 0.9 * rcDepth})`;
+          ctx.arc(rc.sx, rc.sy, 6, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,210,60,${rcAlpha * 0.95 * rcDepth})`;
           ctx.fill();
 
-          // "Root Cause" label
-          ctx.font = '600 10px Inter, sans-serif';
+          // White hot center
+          ctx.beginPath();
+          ctx.arc(rc.sx, rc.sy, 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,220,${rcAlpha * 0.9 * rcDepth})`;
+          ctx.fill();
+
+          // "Root Cause" label — bigger
+          ctx.font = '600 12px Inter, sans-serif';
           ctx.textBaseline = 'middle';
-          ctx.fillStyle = `rgba(245,158,11,${rcAlpha * 0.9 * rcDepth})`;
-          ctx.fillText('Root Cause', rc.sx + 14, rc.sy);
+          ctx.fillStyle = `rgba(255,200,50,${rcAlpha * 0.95 * rcDepth})`;
+          ctx.fillText('Root Cause', rc.sx + 18, rc.sy);
         }
       }
     }
