@@ -300,30 +300,30 @@
     rotSpeed: 0.003, globeOffY: 1.3, zoom: 1.6,
     stormAlpha: 1.0, normalAlpha: 1.0,
     lineAlpha: 0.3, scatterAmt: 0,
-    greenOverlay: 0.5, labelOpacity: 0, causalHighlight: 0,
+    greenOverlay: 0.5, labelOpacity: 0.6, causalHighlight: 0,
     heroGlow: 1,
   };
 
   const STEPS = [
-    { // 0 — Problem Statement (chaos): globe rises and explodes
-      rotSpeed: 0.006, globeOffY: 0.5, zoom: 0.9,
+    { // 0 — Problem Statement (chaos): globe rises, icons scatter with particles
+      rotSpeed: 0.006, globeOffY: 0.5, zoom: 1.0,
       stormAlpha: 0.75, normalAlpha: 0.5,
       lineAlpha: 0.01, scatterAmt: 1.3,
-      greenOverlay: 0, labelOpacity: 0, causalHighlight: 0,
+      greenOverlay: 0, labelOpacity: 0.3, causalHighlight: 0,
       heroGlow: 0,
     },
-    { // 1 — PWM (converge + labels): globe centered
-      rotSpeed: 0.002, globeOffY: 0.50, zoom: 1.15,
+    { // 1 — PWM (converge + labels): globe centered, camera comes closer
+      rotSpeed: 0.002, globeOffY: 0.50, zoom: 1.4,
       stormAlpha: 0.95, normalAlpha: 0.65,
       lineAlpha: 0.2, scatterAmt: 0,
       greenOverlay: 0.25, labelOpacity: 1, causalHighlight: 0,
       heroGlow: 0,
     },
-    { // 2 — CSE (causal connections)
-      rotSpeed: 0.001, globeOffY: 0.50, zoom: 1.25,
+    { // 2 — CSE (causal connections): camera even closer
+      rotSpeed: 0.001, globeOffY: 0.50, zoom: 1.6,
       stormAlpha: 0.95, normalAlpha: 0.7,
       lineAlpha: 0.3, scatterAmt: 0,
-      greenOverlay: 0.35, labelOpacity: 0, causalHighlight: 1,
+      greenOverlay: 0.35, labelOpacity: 0.4, causalHighlight: 1,
       heroGlow: 0,
     },
   ];
@@ -460,14 +460,20 @@
   };
 
   const PWM_LABELS = [
-    { icon: 'database', label: 'Database', idx: null },
-    { icon: 'alert', label: 'Alert', idx: null },
-    { icon: 'doc', label: 'Runbook', idx: null },
-    { icon: 'people', label: 'Team', idx: null },
-    { icon: 'appWindow', label: 'Service', idx: null },
-    { icon: 'server', label: 'Server', idx: null },
-    { icon: 'package', label: 'Deploy', idx: null },
-    { icon: 'metrics', label: 'Traces', idx: null },
+    { icon: 'database', idx: null },
+    { icon: 'alert', idx: null },
+    { icon: 'doc', idx: null },
+    { icon: 'people', idx: null },
+    { icon: 'appWindow', idx: null },
+    { icon: 'server', idx: null },
+    { icon: 'package', idx: null },
+    { icon: 'metrics', idx: null },
+    { icon: 'cloud', idx: null },
+    { icon: 'terminal', idx: null },
+    { icon: 'database', idx: null },
+    { icon: 'alert', idx: null },
+    { icon: 'server', idx: null },
+    { icon: 'cube', idx: null },
   ];
 
   function assignLabelParticles() {
@@ -584,31 +590,51 @@
       return best;
     }
 
-    // --- Build the LIGHTNING BOLT: one dramatic 10-15 hop trace ---
+    // --- Build the LIGHTNING BOLT: smooth central trace ---
     {
-      // Start from a front-facing, chaotic particle
+      // Find a front-facing particle to use as the central hub
+      function findCentralParticle(minDist, maxDist, fromIdx, exclude) {
+        const fp = particles[fromIdx];
+        let best = -1, bestScore = -Infinity;
+        for (let attempt = 0; attempt < 300; attempt++) {
+          const j = Math.floor(Math.random() * N);
+          if (j === fromIdx || exclude.has(j)) continue;
+          const pj = particles[j];
+          // Prefer front-facing, central particles
+          if (pj.origZ < -0.1) continue;
+          const dx = fp.origX - pj.origX;
+          const dy = fp.origY - pj.origY;
+          const dz = fp.origZ - pj.origZ;
+          const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (d < minDist || d > maxDist) continue;
+          // Score: front-facing + central (close to Y=0) + some randomness
+          const score = pj.origZ * 0.5 - Math.abs(pj.origY) * 0.3 + Math.random() * 0.2;
+          if (score > bestScore) { best = j; bestScore = score; }
+        }
+        return best;
+      }
+
+      // Start from a front-facing particle near the top
       const candidates = particles
-        .map((p, i) => ({ i, score: p.chaos * 0.4 + p.origZ * 0.4 + Math.random() * 0.2 }))
-        .filter(c => particles[c.i].origZ > 0)
+        .map((p, i) => ({ i, score: p.origZ * 0.5 + p.origY * 0.3 + Math.random() * 0.2 }))
+        .filter(c => particles[c.i].origZ > 0.2)
         .sort((a, b) => b.score - a.score);
       const startIdx = candidates[0].i;
       const chain = [startIdx];
       const chainSet = new Set([startIdx]);
 
-      for (let hop = 0; hop < 14; hop++) {
+      // Shorter hops = smoother path, 12 hops
+      for (let hop = 0; hop < 12; hop++) {
         const lastIdx = chain[chain.length - 1];
-        const next = findDistantParticle(lastIdx, 0.2, 0.8, chainSet);
+        const next = findCentralParticle(0.15, 0.55, lastIdx, chainSet);
         if (next === -1) break;
         chain.push(next);
         chainSet.add(next);
       }
 
-      if (chain.length >= 8) {
+      if (chain.length >= 6) {
         rootCauseIdx = chain[chain.length - 1];
-        lightningBolt = {
-          indices: chain,
-          speed: 0.25,
-        };
+        lightningBolt = { indices: chain };
       }
     }
 
@@ -669,17 +695,15 @@
       }
     }
 
-    // --- LIGHTNING BOLT: the dramatic single trace ---
-    if (lightningBolt && highlight > 0.3) {
-      const bolt = lightningBolt;
-      const { indices } = bolt;
-      const boltReveal = Math.max(0, Math.min(1, (highlight - 0.3) / 0.7));
+    // --- LIGHTNING BOLT: smooth dramatic trace ---
+    if (lightningBolt && highlight > 0.2) {
+      const { indices } = lightningBolt;
+      const boltReveal = Math.max(0, Math.min(1, (highlight - 0.2) / 0.6));
 
-      // Traveling pulse that sweeps once along the bolt then holds at root cause
-      // Cycle: 6 seconds total — 4s travel, 2s hold at root cause
-      const cycleTime = 6000;
+      // Cycle: 5s travel, 2s hold at root cause
+      const cycleTime = 7000;
       const phase = (now % cycleTime) / cycleTime;
-      const travelPhase = Math.min(1, phase / 0.65);  // 0-1 over first 65% of cycle
+      const travelPhase = Math.min(1, phase / 0.7);
       const headPos = travelPhase * indices.length;
 
       for (let s = 0; s < indices.length - 1; s++) {
@@ -687,45 +711,42 @@
         const b = projByIdx[indices[s + 1]];
         if (!a || !b) continue;
         const avgDepth = (a.depth + b.depth) / 2;
-        if (avgDepth < -0.3) continue;
-        const depthFade = Math.max(0, (avgDepth + 0.3) / 1.3);
+        if (avgDepth < -0.2) continue;
+        const depthFade = Math.max(0, (avgDepth + 0.2) / 1.2);
 
-        // Only draw segments the pulse has reached
         if (s > headPos) continue;
 
-        // Trail brightness: segments near the head are brightest, tail fades
+        // Smooth trail — longer fade, softer falloff
         const trailDist = headPos - s;
-        const trailFade = Math.exp(-trailDist * trailDist * 0.02);
-        const headGlow = trailDist < 1.5 ? 1 : trailFade;
+        const trailFade = Math.exp(-trailDist * 0.15);
+        const headGlow = trailDist < 2 ? 1 : trailFade;
+        const alpha = boltReveal * depthFade * (0.1 + headGlow * 0.75);
 
-        const alpha = boltReveal * depthFade * (0.15 + headGlow * 0.7);
-
-        // Zigzag offset for lightning feel
+        // Gentle curve offset (not zigzag)
         const dx = b.sx - a.sx, dy = b.sy - a.sy;
         const len = Math.sqrt(dx * dx + dy * dy);
         if (len < 1) continue;
         const nx = -dy / len, ny = dx / len;
-        const zigzag = Math.sin(s * 2.8) * len * 0.2;
-        const cpx = (a.sx + b.sx) / 2 + nx * zigzag;
-        const cpy = (a.sy + b.sy) / 2 + ny * zigzag;
+        const curve = Math.sin(s * 1.2 + 0.5) * len * 0.12;
+        const cpx = (a.sx + b.sx) / 2 + nx * curve;
+        const cpy = (a.sy + b.sy) / 2 + ny * curve;
 
-        // Bright green with glow
-        ctx.strokeStyle = `rgba(34,230,100,${alpha})`;
-        ctx.lineWidth = (2.5 + headGlow * 2) * depthFade;
+        // Wide soft outer glow
+        ctx.strokeStyle = `rgba(34,197,94,${alpha * 0.2})`;
+        ctx.lineWidth = (8 + headGlow * 6) * depthFade;
+        ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(a.sx, a.sy);
         ctx.quadraticCurveTo(cpx, cpy, b.sx, b.sy);
         ctx.stroke();
 
-        // Outer glow layer
-        if (headGlow > 0.3) {
-          ctx.strokeStyle = `rgba(34,197,94,${alpha * 0.3})`;
-          ctx.lineWidth = (5 + headGlow * 4) * depthFade;
-          ctx.beginPath();
-          ctx.moveTo(a.sx, a.sy);
-          ctx.quadraticCurveTo(cpx, cpy, b.sx, b.sy);
-          ctx.stroke();
-        }
+        // Core bright line
+        ctx.strokeStyle = `rgba(34,230,110,${alpha})`;
+        ctx.lineWidth = (2 + headGlow * 1.5) * depthFade;
+        ctx.beginPath();
+        ctx.moveTo(a.sx, a.sy);
+        ctx.quadraticCurveTo(cpx, cpy, b.sx, b.sy);
+        ctx.stroke();
 
         // Node dots along the bolt path
         if (s % 2 === 0) {
