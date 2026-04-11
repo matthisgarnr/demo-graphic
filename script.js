@@ -719,10 +719,9 @@
       }
     }
 
-    // --- LIGHTNING BOLT: smooth Catmull-Rom spline trace ---
-    if (lightningBolt && highlight > 0.6) {
+    // --- LIGHTNING BOLT: scroll-driven Catmull-Rom spline trace ---
+    if (lightningBolt && highlight > 0.3) {
       const { indices } = lightningBolt;
-      const boltReveal = Math.max(0, Math.min(1, (highlight - 0.6) / 0.4));
 
       // Collect projected points for the spline
       const pts = [];
@@ -733,7 +732,7 @@
       if (pts.length < 4) { /* skip */ }
       else {
         // Build a dense smooth path using Catmull-Rom interpolation
-        const SUBDIV = 8; // subdivisions per segment
+        const SUBDIV = 8;
         const smoothPath = [];
         for (let i = 0; i < pts.length - 1; i++) {
           const p0 = pts[Math.max(0, i - 1)];
@@ -749,16 +748,14 @@
             smoothPath.push({ x, y, depth: d });
           }
         }
-        // Add the last point
         smoothPath.push(pts[pts.length - 1]);
 
-        // Cycle: 5s travel, 2.5s hold
-        const cycleTime = 7500;
-        const phase = (now % cycleTime) / cycleTime;
-        const travelPhase = Math.min(1, phase / 0.65);
-        const headIdx = Math.floor(travelPhase * (smoothPath.length - 1));
+        // SCROLL-DRIVEN: highlight 0.3→0.9 draws the bolt, 0.9→1.0 reveals root cause
+        const drawProgress = Math.max(0, Math.min(1, (highlight - 0.3) / 0.6));
+        const headIdx = Math.floor(drawProgress * (smoothPath.length - 1));
+        const boltAlpha = Math.min(1, (highlight - 0.3) / 0.2); // fade in opacity
 
-        // Draw the path up to the head position
+        // Draw the path up to the scroll-driven head position
         const drawPath = (color, width) => {
           ctx.strokeStyle = color;
           ctx.lineWidth = width;
@@ -769,10 +766,6 @@
           for (let i = 0; i <= headIdx && i < smoothPath.length; i++) {
             const sp = smoothPath[i];
             if (sp.depth < -0.2) { started = false; continue; }
-            const trailDist = (headIdx - i) / SUBDIV;
-            const trailFade = Math.exp(-trailDist * 0.12);
-            const alpha = boltReveal * trailFade;
-            if (alpha < 0.02) { started = false; continue; }
             if (!started) { ctx.moveTo(sp.x, sp.y); started = true; }
             else { ctx.lineTo(sp.x, sp.y); }
           }
@@ -780,33 +773,32 @@
         };
 
         // Three layers: wide glow, mid, core
-        const headAlpha = boltReveal;
-        drawPath(`rgba(34,197,94,${headAlpha * 0.1})`, 18);
-        drawPath(`rgba(34,220,100,${headAlpha * 0.35})`, 6);
-        drawPath(`rgba(180,255,200,${headAlpha * 0.85})`, 2.5);
+        drawPath(`rgba(34,197,94,${boltAlpha * 0.1})`, 18);
+        drawPath(`rgba(34,220,100,${boltAlpha * 0.35})`, 6);
+        drawPath(`rgba(180,255,200,${boltAlpha * 0.85})`, 2.5);
 
-        // Traveling head dot
-        if (headIdx < smoothPath.length) {
+        // Traveling head dot at the current scroll position
+        if (headIdx > 0 && headIdx < smoothPath.length) {
           const hp = smoothPath[headIdx];
           if (hp.depth > -0.2) {
             ctx.beginPath();
-            ctx.arc(hp.x, hp.y, 5, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(200,255,220,${boltReveal * 0.9})`;
+            ctx.arc(hp.x, hp.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(200,255,220,${boltAlpha * 0.9})`;
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(hp.x, hp.y, 12, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(34,197,94,${boltReveal * 0.15})`;
+            ctx.arc(hp.x, hp.y, 14, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(34,197,94,${boltAlpha * 0.15})`;
             ctx.fill();
           }
         }
 
-        // --- ROOT CAUSE NODE: large pulsing amber marker ---
-        if (rootCauseIdx >= 0 && travelPhase >= 0.85) {
+        // --- ROOT CAUSE NODE: appears when bolt reaches the end ---
+        const rcProgress = Math.max(0, Math.min(1, (highlight - 0.85) / 0.15));
+        if (rootCauseIdx >= 0 && rcProgress > 0) {
           const rc = projByIdx[rootCauseIdx];
           if (rc && rc.depth > -0.2) {
-            const rcReveal = Math.min(1, (travelPhase - 0.85) / 0.15);
             const rcPulse = 0.6 + 0.4 * Math.sin(now * 0.004);
-            const rcAlpha = boltReveal * rcReveal;
+            const rcAlpha = rcProgress;
             const rcDepth = Math.max(0, (rc.depth + 0.2) / 1.2);
 
             // Widest outer glow
