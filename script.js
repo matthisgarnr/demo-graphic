@@ -267,7 +267,21 @@
       }
 
       const remapped = Math.max(0, (scrollProgress - HERO_INTRO) / (1 - HERO_INTRO));
-      const stepIndex = getStepAt(remapped);
+      let stepIndex = getStepAt(remapped);
+
+      // Delay step 2 text until root cause node is about to appear
+      // (causalHighlight needs to reach ~0.8 before we show the text)
+      if (stepIndex === 2) {
+        const localT = (remapped - BREAKS[2]) / (BREAKS[3] - BREAKS[2]);
+        const st = smoothstep(localT);
+        // causalHighlight interpolates from 0 to 1 across step 2
+        // root cause appears at highlight > 0.85
+        // show step 2 text when we're ~75% through step 2
+        if (st < 0.7) {
+          stepIndex = 1; // keep showing step 1 text
+        }
+      }
+
       transitionToStep(stepIndex);
     }
     window.addEventListener('scroll', update, { passive: true });
