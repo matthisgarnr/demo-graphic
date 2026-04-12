@@ -269,16 +269,14 @@
       const remapped = Math.max(0, (scrollProgress - HERO_INTRO) / (1 - HERO_INTRO));
       let stepIndex = getStepAt(remapped);
 
-      // Delay step 2 text until root cause node is about to appear
-      // (causalHighlight needs to reach ~0.8 before we show the text)
+      // Delay step 2 text until root cause node appears
+      // Root cause shows at causalHighlight > 0.85
+      // Text should arrive at the same time or just before
       if (stepIndex === 2) {
         const localT = (remapped - BREAKS[2]) / (BREAKS[3] - BREAKS[2]);
         const st = smoothstep(localT);
-        // causalHighlight interpolates from 0 to 1 across step 2
-        // root cause appears at highlight > 0.85
-        // show step 2 text when we're ~75% through step 2
-        if (st < 0.7) {
-          stepIndex = 1; // keep showing step 1 text
+        if (st < 0.88) {
+          stepIndex = 1; // keep step 1 text until root cause is about to show
         }
       }
 
