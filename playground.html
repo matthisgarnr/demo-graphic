@@ -18,14 +18,7 @@
       -webkit-font-smoothing: antialiased; min-height: 100vh; line-height: 1.6;
     }
 
-    .mk-section { max-width: 1400px; margin: 0 auto; padding: 60px 40px 80px; }
-
-    /* ===== TITLE ===== */
-    .mk-title {
-      font-family: 'Host Grotesk', sans-serif;
-      font-size: 52px; font-weight: 500; letter-spacing: -0.03em;
-      text-align: center; margin-bottom: 56px; line-height: 1.1;
-    }
+    .mk-section { max-width: 1400px; margin: 0 auto; padding: 40px 40px 60px; }
 
     /* ===== 3-COLUMN GRID ===== */
     .mk-grid {
@@ -113,10 +106,17 @@
       border-radius: 50%; overflow: hidden;
       position: relative;
       border: 1px solid rgba(255,255,255,0.08);
-      transition: border-color 0.4s, box-shadow 0.4s;
+      transition: border-color 0.4s;
+      animation: globe-pulse 3.5s ease-in-out infinite;
     }
 
-    .mk-globe.has-active { border-color: rgba(34,197,94,0.2); box-shadow: 0 0 40px rgba(34,197,94,0.06); }
+    @keyframes globe-pulse {
+      0%, 30% { box-shadow: 0 0 20px rgba(34,197,94,0.02); }
+      50% { box-shadow: 0 0 60px rgba(34,197,94,0.1), 0 0 120px rgba(34,197,94,0.04); }
+      70%, 100% { box-shadow: 0 0 20px rgba(34,197,94,0.02); }
+    }
+
+    .mk-globe.has-active { border-color: rgba(34,197,94,0.2); box-shadow: 0 0 60px rgba(34,197,94,0.1); animation: none; }
 
     #mk-orb-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
 
@@ -143,29 +143,27 @@
 
     .mk-band.active .mk-band-label { color: var(--white); }
 
-    /* Compressor — perspective trapezoid (wide bottom → narrower top, extends behind globe) */
+    /* Compressor — perspective trapezoid with gradient, extends well behind globe */
     .mk-compressor {
-      width: 100%; max-width: 620px;
-      margin: -30px auto 0;  /* overlaps behind globe for depth */
-      cursor: pointer;
-      position: relative;
-      height: 110px;
-      z-index: 0;
+      width: 100%; max-width: 650px;
+      margin: -60px auto 0;
+      cursor: pointer; position: relative;
+      height: 140px; z-index: 0;
     }
 
     .mk-compressor-shape {
       width: 100%; height: 100%;
-      clip-path: polygon(25% 0%, 75% 0%, 100% 100%, 0% 100%);
-      background: rgba(34,197,94,0.02);
+      clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%);
+      background: linear-gradient(to bottom, rgba(34,197,94,0.04), rgba(34,197,94,0.01));
       transition: background 0.3s;
     }
 
     .mk-compressor.active .mk-compressor-shape {
-      background: rgba(34,197,94,0.06);
+      background: linear-gradient(to bottom, rgba(34,197,94,0.1), rgba(34,197,94,0.03));
     }
 
     .mk-compressor:hover:not(.active) .mk-compressor-shape {
-      background: rgba(34,197,94,0.04);
+      background: linear-gradient(to bottom, rgba(34,197,94,0.06), rgba(34,197,94,0.02));
     }
 
     .mk-compressor-border {
@@ -174,7 +172,7 @@
     }
 
     .mk-compressor-border polygon {
-      fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 1;
+      fill: none; stroke: rgba(34,197,94,0.06); stroke-width: 1;
       transition: stroke 0.3s;
     }
 
@@ -183,33 +181,31 @@
     }
 
     .mk-compressor-label {
-      position: absolute; bottom: 22%; left: 50%;
+      position: absolute; bottom: 18%; left: 50%;
       transform: translateX(-50%);
       font-family: 'Host Grotesk', sans-serif;
       font-size: 14px; font-weight: 500;
       color: rgba(255,255,255,0.18); transition: color 0.3s;
-      pointer-events: none; white-space: nowrap;
-      z-index: 1;
+      pointer-events: none; white-space: nowrap; z-index: 1;
     }
 
     .mk-compressor.active .mk-compressor-label { color: var(--white); }
 
-    /* Shimmer — bottom-to-top sweep */
+    /* Shimmer — sweeps up through compressor, glows orb, continues through top */
     .mk-compressor-shimmer {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      clip-path: polygon(25% 0%, 75% 0%, 100% 100%, 0% 100%);
+      clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%);
       overflow: hidden; pointer-events: none;
     }
 
     .mk-compressor-shimmer::before {
       content: '';
-      position: absolute; left: 0; width: 100%;
-      height: 35%;
-      background: linear-gradient(to top, transparent, rgba(34,197,94,0.1), transparent);
-      animation: shimmer-sweep 3s ease-in-out infinite;
+      position: absolute; left: 0; width: 100%; height: 30%;
+      background: linear-gradient(to top, transparent, rgba(34,197,94,0.12), transparent);
+      animation: shimmer-sweep 3.5s ease-in-out infinite;
     }
 
-    @keyframes shimmer-sweep { 0% { top: 100%; } 100% { top: -35%; } }
+    @keyframes shimmer-sweep { 0% { top: 110%; } 100% { top: -30%; } }
 
     /* Capabilities bar (like foundation bar) */
     .mk-cap-bar {
@@ -259,17 +255,17 @@
 
     @keyframes cap-flow { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
-    /* Top trapezoid (perspective depth into globe) */
+    /* Top trapezoid — perspective depth from capabilities down to globe */
     .mk-cap-trapezoid {
-      width: 100%; max-width: 620px;
-      margin: 0 auto -20px;
-      position: relative; height: 60px; z-index: 0;
+      width: 100%; max-width: 650px;
+      margin: 0 auto -50px;
+      position: relative; height: 120px; z-index: 0;
     }
 
     .mk-cap-trap-shape {
       width: 100%; height: 100%;
-      clip-path: polygon(0% 0%, 100% 0%, 75% 100%, 25% 100%);
-      background: rgba(255,255,255,0.015);
+      clip-path: polygon(0% 0%, 100% 0%, 70% 100%, 30% 100%);
+      background: linear-gradient(to top, rgba(34,197,94,0.03), rgba(34,197,94,0.01));
     }
 
     .mk-cap-trap-border {
@@ -278,8 +274,21 @@
     }
 
     .mk-cap-trap-border polygon {
-      fill: none; stroke: rgba(255,255,255,0.04); stroke-width: 1;
+      fill: none; stroke: rgba(34,197,94,0.05); stroke-width: 1;
     }
+
+    /* Shimmer sweep continuing from globe up through top trapezoid */
+    .mk-cap-trapezoid::before {
+      content: '';
+      position: absolute; left: 0; width: 100%; height: 30%;
+      clip-path: polygon(0% 0%, 100% 0%, 70% 100%, 30% 100%);
+      background: linear-gradient(to top, transparent, rgba(34,197,94,0.08), transparent);
+      animation: shimmer-up 3.5s ease-in-out infinite;
+      animation-delay: 1.5s; /* starts after compressor shimmer hits globe */
+      pointer-events: none;
+    }
+
+    @keyframes shimmer-up { 0% { top: 110%; } 100% { top: -30%; } }
 
     /* Foundation bar */
     .mk-foundation {
@@ -414,8 +423,6 @@
 
 <section class="mk-section">
 
-  <h1 class="mk-title">Traversal's Enterprise AI SRE Platform.</h1>
-
   <div class="mk-grid">
 
     <!-- LEFT: Criteria questions -->
@@ -467,8 +474,8 @@
       <!-- Top trapezoid (perspective path from capabilities down to globe) -->
       <div class="mk-cap-trapezoid">
         <div class="mk-cap-trap-shape"></div>
-        <svg class="mk-cap-trap-border" viewBox="0 0 620 70" preserveAspectRatio="none">
-          <polygon points="0,0 620,0 465,70 155,70"/>
+        <svg class="mk-cap-trap-border" viewBox="0 0 650 120" preserveAspectRatio="none">
+          <polygon points="0,0 650,0 455,120 195,120"/>
         </svg>
       </div>
 
@@ -485,8 +492,8 @@
       <!-- Compressor funnel -->
       <div class="mk-compressor" data-layer="1">
         <div class="mk-compressor-shape"></div>
-        <svg class="mk-compressor-border" viewBox="0 0 620 110" preserveAspectRatio="none">
-          <polygon points="155,0 465,0 620,110 0,110"/>
+        <svg class="mk-compressor-border" viewBox="0 0 650 140" preserveAspectRatio="none">
+          <polygon points="195,0 455,0 650,140 0,140"/>
         </svg>
         <div class="mk-compressor-shimmer"></div>
         <div class="mk-compressor-label">AI&#8209;Native Compressor&trade;</div>
@@ -651,6 +658,7 @@
   const ORB_N = 3000, GA = Math.PI * (3 - Math.sqrt(5));
   let orbP = [], orbCanvas, orbCtx, orbW, orbH, orbDpr;
   let orbRot = 0, orbActiveGlow = 0, orbTargetGlow = 0.15;
+  let isDragging = false, dragStartX = 0, dragAngleStart = 0, dragVelocity = 0;
 
   function lerp(a,b,t){return a+(b-a)*t;}
   function hash3(x,y,z){let h=x*374761393+y*668265263+z*1274126177;h=(h^(h>>13))*1274126177;return((h^(h>>16))&0x7fffffff)/0x7fffffff;}
@@ -679,7 +687,11 @@
     requestAnimationFrame(renderOrb);
     if(!orbCtx)return;
     orbCtx.clearRect(0,0,orbW,orbH);
-    orbRot+=0.0015;
+    if (!isDragging) {
+      dragVelocity *= 0.95;
+      if (Math.abs(dragVelocity) > 0.0001) orbRot += dragVelocity;
+      else orbRot += 0.0015;
+    }
     orbActiveGlow+=(orbTargetGlow-orbActiveGlow)*0.04;
     const cx=orbW/2,cy=orbH/2,rad=Math.min(orbW,orbH)*0.44;
     const cR=Math.cos(orbRot),sR=Math.sin(orbRot);
@@ -701,13 +713,40 @@
   setTimeout(()=>{initOrb();requestAnimationFrame(renderOrb);},100);
   window.addEventListener('resize',()=>{if(orbCtx){const cv=document.getElementById('mk-orb-canvas');if(cv&&cv.offsetWidth>0){orbW=cv.offsetWidth;orbH=cv.offsetHeight;cv.width=orbW*(window.devicePixelRatio||1);cv.height=orbH*(window.devicePixelRatio||1);orbCtx=cv.getContext('2d');orbCtx.setTransform(window.devicePixelRatio||1,0,0,window.devicePixelRatio||1,0,0);}}});
 
+  // Drag to spin orb
+  const globeWrap = document.querySelector('.mk-globe-wrap');
+  globeWrap.style.cursor = 'grab';
+  globeWrap.addEventListener('mousedown', (e) => {
+    isDragging = true; dragStartX = e.clientX; dragAngleStart = orbRot; dragVelocity = 0;
+    globeWrap.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartX;
+    const newAngle = dragAngleStart + dx * 0.005;
+    dragVelocity = (newAngle - orbRot) * 0.5;
+    orbRot = newAngle;
+  });
+  window.addEventListener('mouseup', () => { isDragging = false; globeWrap.style.cursor = 'grab'; });
+
+  globeWrap.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    isDragging = true; dragStartX = e.touches[0].clientX; dragAngleStart = orbRot; dragVelocity = 0;
+  }, { passive: true });
+  window.addEventListener('touchmove', (e) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - dragStartX;
+    const newAngle = dragAngleStart + dx * 0.005;
+    dragVelocity = (newAngle - orbRot) * 0.5;
+    orbRot = newAngle;
+  }, { passive: true });
+  window.addEventListener('touchend', () => { isDragging = false; });
+
   // Entrance
-  gsap.fromTo('.mk-title',{opacity:0,y:30},{opacity:1,y:0,duration:0.8,ease:'power3.out'});
-  gsap.fromTo('.mk-capabilities',{opacity:0,y:15},{opacity:1,y:0,duration:0.6,delay:0.2,ease:'power3.out'});
-  gsap.fromTo('.mk-globe-wrap',{opacity:0,scale:0.95},{opacity:1,scale:1,duration:0.8,delay:0.3,ease:'power3.out'});
-  gsap.fromTo('.mk-compressor',{opacity:0,y:15},{opacity:1,y:0,duration:0.6,delay:0.5,ease:'power3.out'});
-  gsap.fromTo('.mk-foundation',{opacity:0,y:15},{opacity:1,y:0,duration:0.6,delay:0.6,ease:'power3.out'});
-  // Criteria start invisible — only shown on hover
+  gsap.fromTo('.mk-cap-bar',{opacity:0,y:-15},{opacity:1,y:0,duration:0.6,ease:'power3.out'});
+  gsap.fromTo('.mk-globe-wrap',{opacity:0,scale:0.95},{opacity:1,scale:1,duration:0.8,delay:0.2,ease:'power3.out'});
+  gsap.fromTo('.mk-compressor',{opacity:0,y:15},{opacity:1,y:0,duration:0.6,delay:0.4,ease:'power3.out'});
+  gsap.fromTo('.mk-foundation',{opacity:0,y:15},{opacity:1,y:0,duration:0.6,delay:0.5,ease:'power3.out'});
 
 })();
 </script>
