@@ -18,7 +18,10 @@
       -webkit-font-smoothing: antialiased; min-height: 100vh; line-height: 1.6;
     }
 
-    .mk-section { max-width: 1400px; margin: 0 auto; padding: 40px 40px 60px; }
+    .mk-section {
+      max-width: 1400px; margin: 0 auto; padding: 40px 40px 60px;
+      user-select: none; -webkit-user-select: none;
+    }
 
     /* ===== 3-COLUMN GRID ===== */
     .mk-grid {
@@ -136,27 +139,27 @@
 
     .mk-band.active .mk-band-label { color: var(--white); }
 
-    /* Compressor — perspective trapezoid, sits behind globe */
+    /* Compressor — perspective trapezoid, extends from behind globe down past foundation */
     .mk-compressor {
-      width: 100%; max-width: 650px;
-      margin: -40px auto 0;
+      width: 100%; max-width: 680px;
+      margin: -30px auto -20px;
       cursor: pointer; position: relative;
-      height: 120px; z-index: 0;
+      height: 200px; z-index: 0;
     }
 
     .mk-compressor-shape {
       width: 100%; height: 100%;
       clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%);
-      background: linear-gradient(to bottom, transparent 0%, rgba(34,197,94,0.03) 60%, rgba(34,197,94,0.01) 100%);
+      background: linear-gradient(to top, rgba(34,197,94,0.03) 0%, rgba(34,197,94,0.015) 50%, transparent 85%);
       transition: background 0.3s;
     }
 
     .mk-compressor.active .mk-compressor-shape {
-      background: linear-gradient(to bottom, transparent 0%, rgba(34,197,94,0.08) 60%, rgba(34,197,94,0.03) 100%);
+      background: linear-gradient(to top, rgba(34,197,94,0.07) 0%, rgba(34,197,94,0.03) 50%, transparent 85%);
     }
 
     .mk-compressor:hover:not(.active) .mk-compressor-shape {
-      background: linear-gradient(to bottom, transparent 0%, rgba(34,197,94,0.05) 60%, rgba(34,197,94,0.02) 100%);
+      background: linear-gradient(to top, rgba(34,197,94,0.05) 0%, rgba(34,197,94,0.02) 50%, transparent 85%);
     }
 
     .mk-compressor-border {
@@ -174,7 +177,7 @@
     }
 
     .mk-compressor-label {
-      position: absolute; bottom: 18%; left: 50%;
+      position: absolute; bottom: 28%; left: 50%;
       transform: translateX(-50%);
       font-family: 'Host Grotesk', sans-serif;
       font-size: 14px; font-weight: 500;
@@ -270,10 +273,11 @@
       fill: none; stroke: rgba(34,197,94,0.04); stroke-width: 1;
     }
 
-    /* Foundation bar */
+    /* Foundation bar — sits on top of compressor trapezoid */
     .mk-foundation {
       width: 100%; max-width: 620px;
       margin: 0 auto; cursor: pointer;
+      position: relative; z-index: 1;
     }
 
     .mk-foundation-inner {
@@ -472,8 +476,8 @@
       <!-- Compressor funnel -->
       <div class="mk-compressor" data-layer="1">
         <div class="mk-compressor-shape"></div>
-        <svg class="mk-compressor-border" viewBox="0 0 650 140" preserveAspectRatio="none">
-          <polygon points="195,0 455,0 650,140 0,140"/>
+        <svg class="mk-compressor-border" viewBox="0 0 680 200" preserveAspectRatio="none">
+          <polygon points="204,0 476,0 680,200 0,200"/>
         </svg>
         <div class="mk-compressor-shimmer"></div>
         <div class="mk-compressor-label">AI&#8209;Native Compressor&trade;</div>
