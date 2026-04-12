@@ -564,12 +564,12 @@
   window.addEventListener('resize',()=>{if(orbCtx){const cv=document.getElementById('mk-orb-canvas');if(cv&&cv.offsetWidth>0){orbW=cv.offsetWidth;orbH=cv.offsetHeight;cv.width=orbW*(window.devicePixelRatio||1);cv.height=orbH*(window.devicePixelRatio||1);orbCtx=cv.getContext('2d');orbCtx.setTransform(window.devicePixelRatio||1,0,0,window.devicePixelRatio||1,0,0);}}});
 
   // Entrance
-  gsap.from('.mk-title',{opacity:0,y:30,duration:0.8,ease:'power3.out'});
-  gsap.from('.mk-capabilities',{opacity:0,y:15,duration:0.6,delay:0.2,ease:'power3.out'});
-  gsap.from('.mk-globe-wrap',{opacity:0,scale:0.95,duration:0.8,delay:0.3,ease:'power3.out'});
-  gsap.from('.mk-compressor',{opacity:0,y:15,duration:0.6,delay:0.5,ease:'power3.out'});
-  gsap.from('.mk-foundation',{opacity:0,y:15,duration:0.6,delay:0.6,ease:'power3.out'});
-  gsap.from(document.querySelectorAll('.mk-criterion'),{opacity:0,x:-15,duration:0.5,stagger:0.06,delay:0.4,ease:'power2.out'});
+  gsap.fromTo('.mk-title',{opacity:0,y:30},{opacity:1,y:0,duration:0.8,ease:'power3.out'});
+  gsap.fromTo('.mk-capabilities',{opacity:0,y:15},{opacity:1,y:0,duration:0.6,delay:0.2,ease:'power3.out'});
+  gsap.fromTo('.mk-globe-wrap',{opacity:0,scale:0.95},{opacity:1,scale:1,duration:0.8,delay:0.3,ease:'power3.out'});
+  gsap.fromTo('.mk-compressor',{opacity:0,y:15},{opacity:1,y:0,duration:0.6,delay:0.5,ease:'power3.out'});
+  gsap.fromTo('.mk-foundation',{opacity:0,y:15},{opacity:1,y:0,duration:0.6,delay:0.6,ease:'power3.out'});
+  gsap.fromTo(document.querySelectorAll('.mk-criterion'),{opacity:0,x:-15},{opacity:0.3,x:0,duration:0.5,stagger:0.06,delay:0.4,ease:'power2.out'});
 
 })();
 </script>
