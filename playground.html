@@ -694,6 +694,10 @@
     requestAnimationFrame(renderOrb);
     if(!orbCtx)return;
     orbCtx.clearRect(0,0,orbW,orbH);
+    // Smooth interpolation toward mouse target (ease out, no snapping)
+    mouseInfluenceX += (mouseTargetX - mouseInfluenceX) * 0.04;
+    mouseInfluenceY += (mouseTargetY - mouseInfluenceY) * 0.04;
+
     // Mouse-follow: X controls spin speed/direction, Y shifts vertical offset
     const baseSpeed = 0.0015;
     const mouseSpeed = mouseInfluenceX * 0.008;
@@ -723,19 +727,19 @@
   window.addEventListener('resize',()=>{if(orbCtx){const cv=document.getElementById('mk-orb-canvas');if(cv&&cv.offsetWidth>0){orbW=cv.offsetWidth;orbH=cv.offsetHeight;cv.width=orbW*(window.devicePixelRatio||1);cv.height=orbH*(window.devicePixelRatio||1);orbCtx=cv.getContext('2d');orbCtx.setTransform(window.devicePixelRatio||1,0,0,window.devicePixelRatio||1,0,0);}}});
 
   // Mouse-follow: orb spin + tilt follows cursor X and Y
-  let mouseInfluenceX = 0; // -1 to 1
-  let mouseInfluenceY = 0; // -1 to 1
+  let mouseTargetX = 0, mouseTargetY = 0; // raw targets
+  let mouseInfluenceX = 0, mouseInfluenceY = 0; // smoothed values
   const sectionEl = document.querySelector('.mk-section');
 
   sectionEl.addEventListener('mousemove', (e) => {
     const globeRect = document.querySelector('.mk-globe-wrap').getBoundingClientRect();
     const globeCx = globeRect.left + globeRect.width / 2;
     const globeCy = globeRect.top + globeRect.height / 2;
-    mouseInfluenceX = Math.max(-1, Math.min(1, (e.clientX - globeCx) / (window.innerWidth / 2)));
-    mouseInfluenceY = Math.max(-1, Math.min(1, (e.clientY - globeCy) / (window.innerHeight / 2)));
+    mouseTargetX = Math.max(-1, Math.min(1, (e.clientX - globeCx) / (window.innerWidth / 2)));
+    mouseTargetY = Math.max(-1, Math.min(1, (e.clientY - globeCy) / (window.innerHeight / 2)));
   });
 
-  sectionEl.addEventListener('mouseleave', () => { mouseInfluenceX = 0; mouseInfluenceY = 0; });
+  sectionEl.addEventListener('mouseleave', () => { mouseTargetX = 0; mouseTargetY = 0; });
 
   // Entrance
   gsap.fromTo('.mk-cap-bar',{opacity:0,y:-15},{opacity:1,y:0,duration:0.6,ease:'power3.out'});
