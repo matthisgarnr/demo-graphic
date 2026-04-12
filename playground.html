@@ -85,52 +85,7 @@
     }
 
     /* Capabilities bar */
-    .mk-capabilities {
-      width: 100%; max-width: 560px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px; padding: 14px 20px;
-      margin-bottom: 16px;
-    }
-
-    .mk-cap-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 9px; text-transform: uppercase;
-      letter-spacing: 2px; color: var(--green);
-      text-align: center; margin-bottom: 10px;
-    }
-
-    .mk-cap-grid {
-      display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;
-    }
-
-    .mk-cap-item {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 12px; color: rgba(255,255,255,0.45);
-    }
-
-    .mk-cap-icon {
-      width: 20px; height: 20px; border-radius: 4px;
-      border: 1px solid rgba(255,255,255,0.08);
-      display: flex; align-items: center; justify-content: center;
-    }
-
-    .mk-cap-icon svg {
-      width: 12px; height: 12px; stroke: rgba(255,255,255,0.3);
-      fill: none; stroke-width: 1.5; stroke-linecap: round;
-    }
-
-    /* Connector arrows */
-    .mk-connector {
-      width: 1px; height: 20px; background: rgba(255,255,255,0.06);
-      position: relative; margin: 0 auto;
-    }
-
-    .mk-connector::after {
-      content: ''; position: absolute; top: -3px; left: 50%; transform: translateX(-50%);
-      border-left: 3px solid transparent; border-right: 3px solid transparent;
-      border-bottom: 4px solid rgba(34,197,94,0.2);
-    }
+    /* (Old box capabilities removed — triangle version below) */
 
     /* Globe */
     .mk-globe-wrap {
@@ -174,41 +129,39 @@
 
     .mk-band.active .mk-band-label { color: var(--white); }
 
-    /* Compressor — trapezoid/funnel */
+    /* Compressor — tall triangle (wide bottom → narrow top feeding into globe) */
     .mk-compressor {
-      width: 100%; max-width: 560px;
-      margin: 12px auto 0;
+      width: 100%; max-width: 620px;
+      margin: 0 auto;
       cursor: pointer;
       position: relative;
-      height: 70px;
+      height: 100px;
       transition: all 0.3s;
     }
 
     .mk-compressor-shape {
       width: 100%; height: 100%;
-      clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);
-      background: rgba(255,255,255,0.03);
-      border: none;
-      position: relative;
+      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+      background: rgba(34,197,94,0.03);
       transition: background 0.3s;
     }
 
     .mk-compressor.active .mk-compressor-shape {
-      background: rgba(34,197,94,0.06);
+      background: rgba(34,197,94,0.08);
     }
 
     .mk-compressor:hover:not(.active) .mk-compressor-shape {
-      background: rgba(255,255,255,0.04);
+      background: rgba(34,197,94,0.05);
     }
 
-    /* Trapezoid border via SVG overlay */
+    /* Triangle border via SVG */
     .mk-compressor-border {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none;
     }
 
     .mk-compressor-border polygon {
-      fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 1;
+      fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 1;
       transition: stroke 0.3s;
     }
 
@@ -217,41 +170,62 @@
     }
 
     .mk-compressor-label {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
+      position: absolute; bottom: 20%; left: 50%;
+      transform: translateX(-50%);
       font-family: 'Host Grotesk', sans-serif;
-      font-size: 15px; font-weight: 500;
-      color: rgba(255,255,255,0.25); transition: color 0.3s;
+      font-size: 14px; font-weight: 500;
+      color: rgba(255,255,255,0.2); transition: color 0.3s;
       pointer-events: none; white-space: nowrap;
     }
 
     .mk-compressor.active .mk-compressor-label { color: var(--white); }
 
-    /* Shimmer on compressor — bottom-to-top sweep */
+    /* Shimmer — bottom-to-top sweep inside triangle */
     .mk-compressor-shimmer {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);
+      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
       overflow: hidden; pointer-events: none;
     }
 
     .mk-compressor-shimmer::before {
       content: '';
       position: absolute; left: 0; width: 100%;
-      height: 40%;
-      background: linear-gradient(
-        to top,
-        transparent 0%,
-        rgba(34,197,94,0.08) 30%,
-        rgba(34,197,94,0.2) 50%,
-        rgba(34,197,94,0.08) 70%,
-        transparent 100%
-      );
-      animation: shimmer-sweep 3s ease-in-out infinite;
+      height: 35%;
+      background: linear-gradient(to top, transparent, rgba(34,197,94,0.15), transparent);
+      animation: shimmer-sweep 2.5s ease-in-out infinite;
     }
 
-    @keyframes shimmer-sweep {
-      0% { top: 100%; }
-      100% { top: -40%; }
+    @keyframes shimmer-sweep { 0% { top: 100%; } 100% { top: -35%; } }
+
+    /* Capabilities — inverted triangle (narrow bottom → wide top) */
+    .mk-capabilities {
+      width: 100%; max-width: 620px;
+      margin: 0 auto 0;
+      position: relative;
+      height: 80px;
+      cursor: default;
+    }
+
+    .mk-cap-shape {
+      width: 100%; height: 100%;
+      clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+      background: rgba(255,255,255,0.03);
+      border: none;
+    }
+
+    .mk-cap-border {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+    }
+
+    .mk-cap-border polygon {
+      fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 1;
+    }
+
+    .mk-cap-content {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: flex-start; padding-top: 10px;
     }
 
     /* Foundation bar */
@@ -283,14 +257,36 @@
 
     .mk-foundation.active .mk-foundation-label { color: var(--white); }
 
-    /* Data sources */
-    .mk-sources {
-      display: flex; align-items: center; justify-content: center;
-      gap: 10px; margin-top: 10px; flex-wrap: wrap;
+    /* Data sources — flowing into capture */
+    .mk-sources-wrap {
+      overflow: hidden; max-width: 620px; width: 100%;
+      margin: 8px auto 0; position: relative;
     }
 
-    .mk-sources span { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.25); }
-    .mk-sources .dot { width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,0.12); }
+    .mk-sources-wrap::before, .mk-sources-wrap::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 60px; z-index: 2; pointer-events: none;
+    }
+
+    .mk-sources-wrap::before { left: 0; background: linear-gradient(to right, var(--dark-bg), transparent); }
+    .mk-sources-wrap::after { right: 0; background: linear-gradient(to left, var(--dark-bg), transparent); }
+
+    .mk-sources {
+      display: flex; align-items: center; gap: 16px;
+      animation: sources-flow 20s linear infinite;
+      width: max-content;
+    }
+
+    .mk-sources span {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: rgba(255,255,255,0.3); white-space: nowrap;
+    }
+
+    .mk-sources .dot {
+      width: 3px; height: 3px; border-radius: 50%;
+      background: rgba(34,197,94,0.3); flex-shrink: 0;
+    }
+
+    @keyframes sources-flow { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
     /* ===== RIGHT: Descriptions ===== */
     .mk-descriptions {
@@ -396,18 +392,22 @@
     <!-- CENTER: Diagram -->
     <div class="mk-diagram">
 
-      <!-- Capabilities bar -->
+      <!-- Capabilities — inverted triangle -->
       <div class="mk-capabilities">
-        <div class="mk-cap-label">Agentic Enterprise Capabilities</div>
-        <div class="mk-cap-grid">
-          <div class="mk-cap-item"><span class="mk-cap-icon"><svg viewBox="0 0 24 24"><path d="M12 9V13M12 17.01L12.01 16.99M20.04 21H3.96C2.42 21 1.46 19.34 2.22 18L10.27 4.02C11.04 2.68 12.96 2.68 13.73 4.02L21.78 18C22.54 19.34 21.58 21 20.04 21Z"/></svg></span> Alert intelligence</div>
-          <div class="mk-cap-item"><span class="mk-cap-icon"><svg viewBox="0 0 24 24"><path d="M15 15L21 21M10 17C6.13 17 3 13.87 3 10C3 6.13 6.13 3 10 3C13.87 3 17 6.13 17 10C17 13.87 13.87 17 10 17Z"/></svg></span> Root cause analysis</div>
-          <div class="mk-cap-item"><span class="mk-cap-icon"><svg viewBox="0 0 24 24"><path d="M17 13H7M12 8L7 13L12 18"/><path d="M21 4V20"/></svg></span> Autonomous remediation</div>
-          <div class="mk-cap-item"><span class="mk-cap-icon"><svg viewBox="0 0 24 24"><path d="M13 17H20M5 7L10 12L5 17"/></svg></span> Code resilience</div>
+        <div class="mk-cap-shape"></div>
+        <svg class="mk-cap-border" viewBox="0 0 620 80" preserveAspectRatio="none">
+          <polygon points="0,0 620,0 310,80"/>
+        </svg>
+        <div class="mk-cap-content">
+          <div class="mk-cap-label">Agentic Enterprise Capabilities</div>
+          <div class="mk-cap-grid">
+            <span class="mk-cap-item">Alert intelligence</span>
+            <span class="mk-cap-item">Root cause analysis</span>
+            <span class="mk-cap-item">Autonomous remediation</span>
+            <span class="mk-cap-item">Code resilience</span>
+          </div>
         </div>
       </div>
-
-      <div class="mk-connector"></div>
 
       <!-- Globe -->
       <div class="mk-globe-wrap">
@@ -422,8 +422,8 @@
       <!-- Compressor funnel -->
       <div class="mk-compressor" data-layer="1">
         <div class="mk-compressor-shape"></div>
-        <svg class="mk-compressor-border" viewBox="0 0 560 70" preserveAspectRatio="none">
-          <polygon points="56,0 504,0 560,70 0,70"/>
+        <svg class="mk-compressor-border" viewBox="0 0 620 100" preserveAspectRatio="none">
+          <polygon points="310,0 620,100 0,100"/>
         </svg>
         <div class="mk-compressor-shimmer"></div>
         <div class="mk-compressor-label">AI&#8209;Native Compressor&trade;</div>
@@ -436,14 +436,28 @@
         </div>
       </div>
 
-      <!-- Data sources -->
-      <div class="mk-sources">
-        <span>MELT telemetry</span><span class="dot"></span>
-        <span>Source code</span><span class="dot"></span>
-        <span>Deploys</span><span class="dot"></span>
-        <span>Runbooks</span><span class="dot"></span>
-        <span>Historical incidents</span><span class="dot"></span>
-        <span>Jira</span>
+      <!-- Data sources — flowing into capture -->
+      <div class="mk-sources-wrap">
+        <div class="mk-sources">
+          <span>MELT telemetry</span><span class="dot"></span>
+          <span>Source code</span><span class="dot"></span>
+          <span>Deploys</span><span class="dot"></span>
+          <span>Runbooks</span><span class="dot"></span>
+          <span>Historical incidents</span><span class="dot"></span>
+          <span>Jira</span><span class="dot"></span>
+          <span>Logs</span><span class="dot"></span>
+          <span>Metrics</span><span class="dot"></span>
+          <span>Traces</span><span class="dot"></span>
+          <span>MELT telemetry</span><span class="dot"></span>
+          <span>Source code</span><span class="dot"></span>
+          <span>Deploys</span><span class="dot"></span>
+          <span>Runbooks</span><span class="dot"></span>
+          <span>Historical incidents</span><span class="dot"></span>
+          <span>Jira</span><span class="dot"></span>
+          <span>Logs</span><span class="dot"></span>
+          <span>Metrics</span><span class="dot"></span>
+          <span>Traces</span><span class="dot"></span>
+        </div>
       </div>
 
       <!-- Mobile info card -->
