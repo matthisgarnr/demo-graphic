@@ -45,7 +45,7 @@
 
     .mk-criterion {
       display: flex; align-items: flex-start; gap: 12px;
-      opacity: 0.3; transition: opacity 0.4s;
+      opacity: 0; transition: opacity 0.4s;
       padding: 12px 0;
     }
 
@@ -227,7 +227,7 @@
 
     .mk-compressor.active .mk-compressor-label { color: var(--white); }
 
-    /* Shimmer on compressor edges */
+    /* Shimmer on compressor — bottom-to-top sweep */
     .mk-compressor-shimmer {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);
@@ -236,22 +236,23 @@
 
     .mk-compressor-shimmer::before {
       content: '';
-      position: absolute; top: -100%; left: -100%;
-      width: 300%; height: 300%;
-      background: conic-gradient(
-        from 0deg,
-        transparent 0deg, transparent 160deg,
-        rgba(34,197,94,0.15) 180deg,
-        rgba(34,197,94,0.3) 200deg,
-        rgba(34,197,94,0.15) 220deg,
-        transparent 240deg, transparent 360deg
+      position: absolute; left: 0; width: 100%;
+      height: 40%;
+      background: linear-gradient(
+        to top,
+        transparent 0%,
+        rgba(34,197,94,0.08) 30%,
+        rgba(34,197,94,0.2) 50%,
+        rgba(34,197,94,0.08) 70%,
+        transparent 100%
       );
-      animation: shimmer-spin 5s linear infinite;
-      -webkit-mask: radial-gradient(farthest-side, transparent 30%, #fff 31%);
-      mask: radial-gradient(farthest-side, transparent 30%, #fff 31%);
+      animation: shimmer-sweep 3s ease-in-out infinite;
     }
 
-    @keyframes shimmer-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes shimmer-sweep {
+      0% { top: 100%; }
+      100% { top: -40%; }
+    }
 
     /* Foundation bar */
     .mk-foundation {
@@ -314,12 +315,41 @@
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 1100px) {
-      .mk-grid { grid-template-columns: 1fr; gap: 32px; }
-      .mk-criteria { flex-direction: row; flex-wrap: wrap; gap: 12px; padding: 0; justify-content: center; }
-      .mk-criterion { flex: 0 0 auto; max-width: 200px; }
-      .mk-descriptions { flex-direction: row; flex-wrap: wrap; gap: 12px; padding: 0; justify-content: center; }
-      .mk-desc { flex: 0 0 auto; max-width: 200px; }
+      .mk-grid { grid-template-columns: 1fr; gap: 0; }
+      .mk-criteria, .mk-descriptions { display: none; }
       .mk-title { font-size: 36px; }
+
+      /* Mobile: show a combined card below diagram on hover/tap */
+      .mk-mobile-info {
+        display: block;
+        max-width: 560px; width: 100%;
+        margin: 24px auto 0;
+        min-height: 80px;
+      }
+
+      .mk-mobile-info-inner {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 20px 24px;
+        opacity: 0; transition: opacity 0.3s;
+      }
+
+      .mk-mobile-info-inner.visible { opacity: 1; }
+
+      .mk-mobile-question {
+        font-family: 'Host Grotesk', sans-serif;
+        font-size: 14px; font-weight: 500; color: var(--green-light);
+        margin-bottom: 8px;
+      }
+
+      .mk-mobile-answer {
+        font-size: 13px; color: rgba(255,255,255,0.55); line-height: 1.6;
+      }
+    }
+
+    @media (min-width: 1101px) {
+      .mk-mobile-info { display: none; }
     }
 
     @media (max-width: 600px) {
@@ -415,24 +445,32 @@
         <span>Historical incidents</span><span class="dot"></span>
         <span>Jira</span>
       </div>
+
+      <!-- Mobile info card -->
+      <div class="mk-mobile-info" id="mk-mobile-info">
+        <div class="mk-mobile-info-inner" id="mk-mobile-inner">
+          <div class="mk-mobile-question" id="mk-mobile-q"></div>
+          <div class="mk-mobile-answer" id="mk-mobile-a"></div>
+        </div>
+      </div>
     </div>
 
     <!-- RIGHT: Descriptions -->
     <div class="mk-descriptions">
       <div class="mk-desc" data-for="4">
-        <div class="mk-desc-text">From single hop to multi-hop root cause analysis across your entire environment.</div>
+        <div class="mk-desc-text">Follows signals across 5&ndash;20+ hops to pinpoint root cause in minutes. Runs 10,000+ parallel queries, testing causal paths and converging on evidence-backed root cause.</div>
       </div>
       <div class="mk-desc" data-for="3">
-        <div class="mk-desc-text">Autonomously capture runbooks, docs, and feedback from your best SREs.</div>
+        <div class="mk-desc-text">Operational knowledge lives beyond telemetry&mdash;in docs, runbooks, Slack, and engineers&rsquo; heads. Knowledge Bank&trade; captures it and integrates it into the Production World Model&trade;.</div>
       </div>
       <div class="mk-desc" data-for="2">
-        <div class="mk-desc-text">Live map of causal relationships across petabytes of production data.</div>
+        <div class="mk-desc-text">A dynamic model of all causal relationships across your services, dependencies, code, changes, and incident history. It continuously self-updates to reflect how your environment actually works.</div>
       </div>
       <div class="mk-desc" data-for="1">
-        <div class="mk-desc-text">1,000 to 1 data compression with zero signal loss.</div>
+        <div class="mk-desc-text">Compresses production data by up to 1,000:1 with no signal loss&mdash;turning petabytes into terabytes. Reduce network and LLM costs while preserving causal context.</div>
       </div>
       <div class="mk-desc" data-for="0">
-        <div class="mk-desc-text">Capture all telemetry, code, and changes&mdash;no agents, no gaps.</div>
+        <div class="mk-desc-text">Capture all production data&mdash;telemetry, code, deploys, incidents&mdash;without sidecars, pod injections, or tracing. Connect your APIs and get full visibility, fast.</div>
       </div>
     </div>
 
@@ -459,22 +497,37 @@
   const criteria = document.querySelectorAll('.mk-criterion');
   const descs = document.querySelectorAll('.mk-desc');
 
+  // Mobile info card data (question + answer per layer)
+  const LAYER_INFO = {
+    0: { q: 'Does it see all your production data\u2014without gaps?', a: 'Capture all production data\u2014telemetry, code, deploys, incidents\u2014without sidecars, pod injections, or tracing. Connect your APIs and get full visibility, fast.' },
+    1: { q: 'Can it reason at scale\u2014without blowing up costs?', a: 'Compresses production data by up to 1,000:1 with no signal loss\u2014turning petabytes into terabytes. Reduce network and LLM costs while preserving causal context.' },
+    2: { q: 'Does it model causality\u2014or just correlate signals?', a: 'A dynamic model of all causal relationships across your services, dependencies, code, changes, and incident history. It continuously self-updates to reflect how your environment actually works.' },
+    3: { q: 'Does it get smarter itself\u2014or require a team of FDEs?', a: 'Operational knowledge lives beyond telemetry\u2014in docs, runbooks, Slack, and engineers\u2019 heads. Knowledge Bank\u2122 captures it and integrates it into the Production World Model\u2122.' },
+    4: { q: 'Can it find root cause far from the initial symptom in minutes?', a: 'Follows signals across 5\u201320+ hops to pinpoint root cause in minutes. Runs 10,000+ parallel queries, testing causal paths and converging on evidence-backed root cause.' },
+  };
+
+  const mobileInner = document.getElementById('mk-mobile-inner');
+  const mobileQ = document.getElementById('mk-mobile-q');
+  const mobileA = document.getElementById('mk-mobile-a');
+
   function showLayer(idx) {
     if (idx === activeLayer) return;
     activeLayer = idx;
 
-    // Highlight diagram element
     Object.values(diaElements).forEach(el => el.classList.remove('active'));
     if (diaElements[idx]) diaElements[idx].classList.add('active');
     globeEl.classList.toggle('has-active', idx >= 2 && idx <= 4);
 
-    // Highlight matching criterion
     criteria.forEach(c => c.classList.toggle('active', c.dataset.for == idx));
-
-    // Show matching description
     descs.forEach(d => d.classList.toggle('active', d.dataset.for == idx));
 
-    // Orb glow
+    // Mobile info card
+    if (mobileInner && LAYER_INFO[idx]) {
+      mobileQ.textContent = LAYER_INFO[idx].q;
+      mobileA.textContent = LAYER_INFO[idx].a;
+      mobileInner.classList.add('visible');
+    }
+
     orbTargetGlow = (idx >= 2 && idx <= 4) ? 0.6 : 0.15;
   }
 
@@ -484,6 +537,7 @@
     globeEl.classList.remove('has-active');
     criteria.forEach(c => c.classList.remove('active'));
     descs.forEach(d => d.classList.remove('active'));
+    if (mobileInner) mobileInner.classList.remove('visible');
     orbTargetGlow = 0.15;
   }
 
@@ -569,7 +623,7 @@
   gsap.fromTo('.mk-globe-wrap',{opacity:0,scale:0.95},{opacity:1,scale:1,duration:0.8,delay:0.3,ease:'power3.out'});
   gsap.fromTo('.mk-compressor',{opacity:0,y:15},{opacity:1,y:0,duration:0.6,delay:0.5,ease:'power3.out'});
   gsap.fromTo('.mk-foundation',{opacity:0,y:15},{opacity:1,y:0,duration:0.6,delay:0.6,ease:'power3.out'});
-  gsap.fromTo(document.querySelectorAll('.mk-criterion'),{opacity:0,x:-15},{opacity:0.3,x:0,duration:0.5,stagger:0.06,delay:0.4,ease:'power2.out'});
+  // Criteria start invisible — only shown on hover
 
 })();
 </script>
