@@ -303,7 +303,7 @@
   const HERO_INTRO = 0.05;
 
   const HERO_STATE = {
-    rotSpeed: 0.003, globeOffY: 1.3, zoom: 1.6,
+    rotSpeed: 0.003, globeOffY: 1.6, zoom: 1.6,
     stormAlpha: 1.0, normalAlpha: 1.0,
     lineAlpha: 0.3, scatterAmt: 0,
     greenOverlay: 0.5, labelOpacity: 0.6, causalHighlight: 0,
