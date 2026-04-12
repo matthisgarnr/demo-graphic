@@ -116,20 +116,9 @@ img {
   font-size: 10px;
 }
 
-/* ===== NAV ===== */
+/* ===== NAV (hidden for now) ===== */
 .nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 40px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: rgba(10,31,30,0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  transition: background 0.3s;
+  display: none;
 }
 
 .nav-logo {
@@ -472,10 +461,9 @@ img {
   margin-right: auto;
 }
 
-/* ===== FEATURES SECTION ===== */
+/* ===== FEATURES SECTION (hidden for now) ===== */
 .features {
-  padding: 120px 0;
-  background: var(--white);
+  display: none;
 }
 
 .features-container {
