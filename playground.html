@@ -168,12 +168,11 @@
     }
 
     .mk-compressor-border polygon {
-      fill: none; stroke: rgba(34,197,94,0.06); stroke-width: 1;
-      transition: stroke 0.3s;
+      fill: none; stroke: url(#compressor-stroke-fade); stroke-width: 1;
     }
 
     .mk-compressor.active .mk-compressor-border polygon {
-      stroke: rgba(34,197,94,0.25);
+      stroke: url(#compressor-stroke-active);
     }
 
     .mk-compressor-label {
@@ -203,15 +202,17 @@
 
     @keyframes shimmer-sweep { 0% { top: 110%; } 100% { top: -25%; } }
 
-    /* Capabilities bar (like foundation bar) */
+    /* Capabilities bar — blurred background hides top trapezoid corners */
     .mk-cap-bar {
-      width: 100%; max-width: 620px; margin: 0 auto;
+      width: 100%; max-width: 680px; margin: 0 auto;
+      position: relative; z-index: 1;
     }
 
     .mk-cap-bar-inner {
-      background: rgba(255,255,255,0.03);
+      background: rgba(10,31,30,0.85);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px; padding: 16px 32px; text-align: center;
+      border-radius: 10px; padding: 20px 32px; text-align: center;
     }
 
     .mk-cap-bar-label {
@@ -242,6 +243,7 @@
     .mk-cap-marquee span {
       font-family: 'JetBrains Mono', monospace; font-size: 11px;
       color: rgba(255,255,255,0.3); white-space: nowrap;
+      text-transform: uppercase; letter-spacing: 0.5px;
     }
 
     .mk-cap-marquee .dot {
@@ -270,25 +272,26 @@
     }
 
     .mk-cap-trap-border polygon {
-      fill: none; stroke: rgba(34,197,94,0.04); stroke-width: 1;
+      fill: none; stroke: url(#cap-stroke-fade); stroke-width: 1;
     }
 
-    /* Foundation bar — sits on top of compressor trapezoid */
+    /* Foundation bar — sits on top of compressor trapezoid, hides sharp edges */
     .mk-foundation {
-      width: 100%; max-width: 620px;
+      width: 100%; max-width: 680px;
       margin: 0 auto; cursor: pointer;
       position: relative; z-index: 1;
     }
 
     .mk-foundation-inner {
-      background: rgba(255,255,255,0.03);
+      background: rgba(10,31,30,0.85);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px; padding: 18px 32px; text-align: center;
+      border-radius: 10px; padding: 20px 32px; text-align: center;
       transition: border-color 0.3s, background 0.3s;
     }
 
     .mk-foundation.active .mk-foundation-inner {
-      border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.04);
+      border-color: rgba(34,197,94,0.3); background: rgba(10,31,30,0.9);
     }
 
     .mk-foundation:hover:not(.active) .mk-foundation-inner {
@@ -325,6 +328,7 @@
     .mk-sources span {
       font-family: 'JetBrains Mono', monospace; font-size: 11px;
       color: rgba(255,255,255,0.3); white-space: nowrap;
+      text-transform: uppercase; letter-spacing: 0.5px;
     }
 
     .mk-sources .dot {
@@ -458,8 +462,15 @@
       <!-- Top trapezoid (perspective path from capabilities down to globe) -->
       <div class="mk-cap-trapezoid">
         <div class="mk-cap-trap-shape"></div>
-        <svg class="mk-cap-trap-border" viewBox="0 0 650 120" preserveAspectRatio="none">
-          <polygon points="0,0 650,0 455,120 195,120"/>
+        <svg class="mk-cap-trap-border" viewBox="0 0 650 100" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="cap-stroke-fade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(34,197,94,0.06)" />
+              <stop offset="60%" stop-color="rgba(34,197,94,0.03)" />
+              <stop offset="100%" stop-color="rgba(34,197,94,0)" />
+            </linearGradient>
+          </defs>
+          <polygon points="0,0 650,0 455,100 195,100"/>
         </svg>
       </div>
 
@@ -477,6 +488,18 @@
       <div class="mk-compressor" data-layer="1">
         <div class="mk-compressor-shape"></div>
         <svg class="mk-compressor-border" viewBox="0 0 680 200" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="compressor-stroke-fade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(34,197,94,0)" />
+              <stop offset="40%" stop-color="rgba(34,197,94,0.04)" />
+              <stop offset="100%" stop-color="rgba(34,197,94,0.08)" />
+            </linearGradient>
+            <linearGradient id="compressor-stroke-active" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(34,197,94,0)" />
+              <stop offset="40%" stop-color="rgba(34,197,94,0.15)" />
+              <stop offset="100%" stop-color="rgba(34,197,94,0.3)" />
+            </linearGradient>
+          </defs>
           <polygon points="204,0 476,0 680,200 0,200"/>
         </svg>
         <div class="mk-compressor-shimmer"></div>
@@ -671,11 +694,10 @@
     requestAnimationFrame(renderOrb);
     if(!orbCtx)return;
     orbCtx.clearRect(0,0,orbW,orbH);
-    if (!isDragging) {
-      dragVelocity *= 0.95;
-      if (Math.abs(dragVelocity) > 0.0001) orbRot += dragVelocity;
-      else orbRot += 0.0015;
-    }
+    // Mouse-follow: X controls spin speed/direction, Y shifts vertical offset
+    const baseSpeed = 0.0015;
+    const mouseSpeed = mouseInfluenceX * 0.008;
+    orbRot += baseSpeed + mouseSpeed;
     orbActiveGlow+=(orbTargetGlow-orbActiveGlow)*0.04;
     const cx=orbW/2,cy=orbH/2,rad=Math.min(orbW,orbH)*0.44;
     const cR=Math.cos(orbRot),sR=Math.sin(orbRot);
@@ -683,8 +705,11 @@
     const g=orbCtx.createRadialGradient(cx,cy,0,cx,cy,rad*1.1);
     g.addColorStop(0,`rgba(34,197,94,${ga})`);g.addColorStop(0.5,`rgba(34,197,94,${ga*0.3})`);g.addColorStop(1,'rgba(34,197,94,0)');
     orbCtx.fillStyle=g;orbCtx.fillRect(0,0,orbW,orbH);
+    // Y mouse shifts the vertical view slightly (fake tilt)
+    const tiltY = mouseInfluenceY * 0.08;
     const sorted=orbP.map(p=>{const rx=p.x*cR-p.z*sR,rz=p.x*sR+p.z*cR,jt=now*p.jv+p.js;
-      return{sx:cx+(rx+Math.sin(jt)*p.ja)*rad,sy:cy-(p.y+Math.cos(jt*1.3)*p.ja)*rad,depth:rz,...p};
+      const py = p.y + tiltY; // shift Y based on mouse
+      return{sx:cx+(rx+Math.sin(jt)*p.ja)*rad,sy:cy-(py+Math.cos(jt*1.3)*p.ja)*rad,depth:rz,...p};
     }).sort((a,b)=>a.depth-b.depth);
     const gm=orbActiveGlow*0.25;
     for(const p of sorted){const df=(p.depth+1)/2,alpha=(p.isS?0.8:0.55)*df;if(alpha<0.01)continue;
@@ -697,34 +722,20 @@
   setTimeout(()=>{initOrb();requestAnimationFrame(renderOrb);},100);
   window.addEventListener('resize',()=>{if(orbCtx){const cv=document.getElementById('mk-orb-canvas');if(cv&&cv.offsetWidth>0){orbW=cv.offsetWidth;orbH=cv.offsetHeight;cv.width=orbW*(window.devicePixelRatio||1);cv.height=orbH*(window.devicePixelRatio||1);orbCtx=cv.getContext('2d');orbCtx.setTransform(window.devicePixelRatio||1,0,0,window.devicePixelRatio||1,0,0);}}});
 
-  // Drag to spin orb
-  const globeWrap = document.querySelector('.mk-globe-wrap');
-  globeWrap.style.cursor = 'grab';
-  globeWrap.addEventListener('mousedown', (e) => {
-    isDragging = true; dragStartX = e.clientX; dragAngleStart = orbRot; dragVelocity = 0;
-    globeWrap.style.cursor = 'grabbing';
-  });
-  window.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStartX;
-    const newAngle = dragAngleStart + dx * 0.005;
-    dragVelocity = (newAngle - orbRot) * 0.5;
-    orbRot = newAngle;
-  });
-  window.addEventListener('mouseup', () => { isDragging = false; globeWrap.style.cursor = 'grab'; });
+  // Mouse-follow: orb spin + tilt follows cursor X and Y
+  let mouseInfluenceX = 0; // -1 to 1
+  let mouseInfluenceY = 0; // -1 to 1
+  const sectionEl = document.querySelector('.mk-section');
 
-  globeWrap.addEventListener('touchstart', (e) => {
-    if (e.touches.length !== 1) return;
-    isDragging = true; dragStartX = e.touches[0].clientX; dragAngleStart = orbRot; dragVelocity = 0;
-  }, { passive: true });
-  window.addEventListener('touchmove', (e) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    const dx = e.touches[0].clientX - dragStartX;
-    const newAngle = dragAngleStart + dx * 0.005;
-    dragVelocity = (newAngle - orbRot) * 0.5;
-    orbRot = newAngle;
-  }, { passive: true });
-  window.addEventListener('touchend', () => { isDragging = false; });
+  sectionEl.addEventListener('mousemove', (e) => {
+    const globeRect = document.querySelector('.mk-globe-wrap').getBoundingClientRect();
+    const globeCx = globeRect.left + globeRect.width / 2;
+    const globeCy = globeRect.top + globeRect.height / 2;
+    mouseInfluenceX = Math.max(-1, Math.min(1, (e.clientX - globeCx) / (window.innerWidth / 2)));
+    mouseInfluenceY = Math.max(-1, Math.min(1, (e.clientY - globeCy) / (window.innerHeight / 2)));
+  });
+
+  sectionEl.addEventListener('mouseleave', () => { mouseInfluenceX = 0; mouseInfluenceY = 0; });
 
   // Entrance
   gsap.fromTo('.mk-cap-bar',{opacity:0,y:-15},{opacity:1,y:0,duration:0.6,ease:'power3.out'});
