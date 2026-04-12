@@ -85,13 +85,27 @@
     }
 
     /* Capabilities bar */
-    /* (Old box capabilities removed — triangle version below) */
+    .mk-cap-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; text-transform: uppercase;
+      letter-spacing: 2px; color: var(--green);
+      text-align: center; margin-bottom: 8px;
+    }
+
+    .mk-cap-grid {
+      display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;
+    }
+
+    .mk-cap-item {
+      font-size: 12px; color: rgba(255,255,255,0.4);
+    }
 
     /* Globe */
     .mk-globe-wrap {
       position: relative;
       width: 380px; height: 380px;
       margin: 0 auto;
+      z-index: 2;
     }
 
     .mk-globe {
@@ -129,61 +143,61 @@
 
     .mk-band.active .mk-band-label { color: var(--white); }
 
-    /* Compressor — tall triangle (wide bottom → narrow top feeding into globe) */
+    /* Compressor — perspective trapezoid (wide bottom → narrower top, extends behind globe) */
     .mk-compressor {
       width: 100%; max-width: 620px;
-      margin: 0 auto;
+      margin: -30px auto 0;  /* overlaps behind globe for depth */
       cursor: pointer;
       position: relative;
-      height: 100px;
-      transition: all 0.3s;
+      height: 110px;
+      z-index: 0;
     }
 
     .mk-compressor-shape {
       width: 100%; height: 100%;
-      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
-      background: rgba(34,197,94,0.03);
+      clip-path: polygon(25% 0%, 75% 0%, 100% 100%, 0% 100%);
+      background: rgba(34,197,94,0.02);
       transition: background 0.3s;
     }
 
     .mk-compressor.active .mk-compressor-shape {
-      background: rgba(34,197,94,0.08);
+      background: rgba(34,197,94,0.06);
     }
 
     .mk-compressor:hover:not(.active) .mk-compressor-shape {
-      background: rgba(34,197,94,0.05);
+      background: rgba(34,197,94,0.04);
     }
 
-    /* Triangle border via SVG */
     .mk-compressor-border {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none;
     }
 
     .mk-compressor-border polygon {
-      fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 1;
+      fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 1;
       transition: stroke 0.3s;
     }
 
     .mk-compressor.active .mk-compressor-border polygon {
-      stroke: rgba(34,197,94,0.3);
+      stroke: rgba(34,197,94,0.25);
     }
 
     .mk-compressor-label {
-      position: absolute; bottom: 20%; left: 50%;
+      position: absolute; bottom: 22%; left: 50%;
       transform: translateX(-50%);
       font-family: 'Host Grotesk', sans-serif;
       font-size: 14px; font-weight: 500;
-      color: rgba(255,255,255,0.2); transition: color 0.3s;
+      color: rgba(255,255,255,0.18); transition: color 0.3s;
       pointer-events: none; white-space: nowrap;
+      z-index: 1;
     }
 
     .mk-compressor.active .mk-compressor-label { color: var(--white); }
 
-    /* Shimmer — bottom-to-top sweep inside triangle */
+    /* Shimmer — bottom-to-top sweep */
     .mk-compressor-shimmer {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+      clip-path: polygon(25% 0%, 75% 0%, 100% 100%, 0% 100%);
       overflow: hidden; pointer-events: none;
     }
 
@@ -191,41 +205,80 @@
       content: '';
       position: absolute; left: 0; width: 100%;
       height: 35%;
-      background: linear-gradient(to top, transparent, rgba(34,197,94,0.15), transparent);
-      animation: shimmer-sweep 2.5s ease-in-out infinite;
+      background: linear-gradient(to top, transparent, rgba(34,197,94,0.1), transparent);
+      animation: shimmer-sweep 3s ease-in-out infinite;
     }
 
     @keyframes shimmer-sweep { 0% { top: 100%; } 100% { top: -35%; } }
 
-    /* Capabilities — inverted triangle (narrow bottom → wide top) */
-    .mk-capabilities {
-      width: 100%; max-width: 620px;
-      margin: 0 auto 0;
-      position: relative;
-      height: 80px;
-      cursor: default;
+    /* Capabilities bar (like foundation bar) */
+    .mk-cap-bar {
+      width: 100%; max-width: 620px; margin: 0 auto;
     }
 
-    .mk-cap-shape {
-      width: 100%; height: 100%;
-      clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+    .mk-cap-bar-inner {
       background: rgba(255,255,255,0.03);
-      border: none;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 16px 32px; text-align: center;
     }
 
-    .mk-cap-border {
+    .mk-cap-bar-label {
+      font-family: 'Host Grotesk', sans-serif;
+      font-size: 17px; font-weight: 500;
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* Capabilities marquee */
+    .mk-cap-marquee-wrap {
+      overflow: hidden; max-width: 620px; width: 100%;
+      margin: 8px auto 0; position: relative;
+    }
+
+    .mk-cap-marquee-wrap::before, .mk-cap-marquee-wrap::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 60px; z-index: 2; pointer-events: none;
+    }
+
+    .mk-cap-marquee-wrap::before { left: 0; background: linear-gradient(to right, var(--dark-bg), transparent); }
+    .mk-cap-marquee-wrap::after { right: 0; background: linear-gradient(to left, var(--dark-bg), transparent); }
+
+    .mk-cap-marquee {
+      display: flex; align-items: center; gap: 16px;
+      animation: cap-flow 15s linear infinite;
+      width: max-content;
+    }
+
+    .mk-cap-marquee span {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: rgba(255,255,255,0.3); white-space: nowrap;
+    }
+
+    .mk-cap-marquee .dot {
+      width: 3px; height: 3px; border-radius: 50%;
+      background: rgba(34,197,94,0.3); flex-shrink: 0;
+    }
+
+    @keyframes cap-flow { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    /* Top trapezoid (perspective depth into globe) */
+    .mk-cap-trapezoid {
+      width: 100%; max-width: 620px;
+      margin: 0 auto -20px;
+      position: relative; height: 60px; z-index: 0;
+    }
+
+    .mk-cap-trap-shape {
+      width: 100%; height: 100%;
+      clip-path: polygon(0% 0%, 100% 0%, 75% 100%, 25% 100%);
+      background: rgba(255,255,255,0.015);
+    }
+
+    .mk-cap-trap-border {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none;
     }
 
-    .mk-cap-border polygon {
-      fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 1;
-    }
-
-    .mk-cap-content {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: flex-start; padding-top: 10px;
+    .mk-cap-trap-border polygon {
+      fill: none; stroke: rgba(255,255,255,0.04); stroke-width: 1;
     }
 
     /* Foundation bar */
@@ -392,21 +445,31 @@
     <!-- CENTER: Diagram -->
     <div class="mk-diagram">
 
-      <!-- Capabilities — inverted triangle -->
-      <div class="mk-capabilities">
-        <div class="mk-cap-shape"></div>
-        <svg class="mk-cap-border" viewBox="0 0 620 80" preserveAspectRatio="none">
-          <polygon points="0,0 620,0 310,80"/>
-        </svg>
-        <div class="mk-cap-content">
-          <div class="mk-cap-label">Agentic Enterprise Capabilities</div>
-          <div class="mk-cap-grid">
-            <span class="mk-cap-item">Alert intelligence</span>
-            <span class="mk-cap-item">Root cause analysis</span>
-            <span class="mk-cap-item">Autonomous remediation</span>
-            <span class="mk-cap-item">Code resilience</span>
-          </div>
+      <!-- Capabilities bar + marquee (mirrors data capture at bottom) -->
+      <div class="mk-cap-bar">
+        <div class="mk-cap-bar-inner">
+          <div class="mk-cap-bar-label">Agentic Enterprise Capabilities</div>
         </div>
+      </div>
+      <div class="mk-cap-marquee-wrap">
+        <div class="mk-cap-marquee">
+          <span>Alert intelligence</span><span class="dot"></span>
+          <span>Root cause analysis</span><span class="dot"></span>
+          <span>Autonomous remediation</span><span class="dot"></span>
+          <span>Code resilience</span><span class="dot"></span>
+          <span>Alert intelligence</span><span class="dot"></span>
+          <span>Root cause analysis</span><span class="dot"></span>
+          <span>Autonomous remediation</span><span class="dot"></span>
+          <span>Code resilience</span><span class="dot"></span>
+        </div>
+      </div>
+
+      <!-- Top trapezoid (perspective path from capabilities down to globe) -->
+      <div class="mk-cap-trapezoid">
+        <div class="mk-cap-trap-shape"></div>
+        <svg class="mk-cap-trap-border" viewBox="0 0 620 70" preserveAspectRatio="none">
+          <polygon points="0,0 620,0 465,70 155,70"/>
+        </svg>
       </div>
 
       <!-- Globe -->
@@ -422,8 +485,8 @@
       <!-- Compressor funnel -->
       <div class="mk-compressor" data-layer="1">
         <div class="mk-compressor-shape"></div>
-        <svg class="mk-compressor-border" viewBox="0 0 620 100" preserveAspectRatio="none">
-          <polygon points="310,0 620,100 0,100"/>
+        <svg class="mk-compressor-border" viewBox="0 0 620 110" preserveAspectRatio="none">
+          <polygon points="155,0 465,0 620,110 0,110"/>
         </svg>
         <div class="mk-compressor-shimmer"></div>
         <div class="mk-compressor-label">AI&#8209;Native Compressor&trade;</div>
@@ -558,11 +621,18 @@
   // Hover on desktop, tap on mobile
   const isTouch = !window.matchMedia('(hover: hover)').matches;
 
+  let hideTimeout = null;
+
   Object.entries(diaElements).forEach(([idx, el]) => {
     const i = parseInt(idx);
     if (!isTouch) {
-      el.addEventListener('mouseenter', () => showLayer(i));
-      el.addEventListener('mouseleave', () => hideLayer());
+      el.addEventListener('mouseenter', () => {
+        clearTimeout(hideTimeout);
+        showLayer(i);
+      });
+      el.addEventListener('mouseleave', () => {
+        hideTimeout = setTimeout(hideLayer, 80);
+      });
     } else {
       el.addEventListener('click', (e) => {
         e.stopPropagation();
