@@ -81,9 +81,8 @@
       const isStorm = chaos > 0.55;
       const disp = isStorm ? 1 + chaos * 0.08 * (0.5 + Math.random()) : 1;
 
-      // Grain shape: dots only + minimal streaks (no squares per feedback)
-      const gr = Math.random();
-      const grainType = gr < 0.08 ? 0 : 2;
+      // All particles are circular dots — no streaks, no squares
+      const grainType = 2;
       const baseSize = isStorm ? (1.8 + chaos * 2.0 + Math.random() * 0.6) : (0.9 + (1 - chaos) * 0.7 + Math.random() * 0.5);
 
       particles.push({
@@ -644,78 +643,121 @@
     lightningTree = { segments: segs, endX: 0.38, endY: -0.38 };
   }
 
+  // Collect unique node positions from the lightning tree for drawing
+  function collectBoltNodes(segments) {
+    const nodes = [];
+    const seen = new Set();
+    for (const seg of segments) {
+      if (seg.isBranch) continue;
+      const key = `${seg.x1.toFixed(3)},${seg.y1.toFixed(3)}`;
+      if (!seen.has(key)) { seen.add(key); nodes.push({ x: seg.x1, y: seg.y1 }); }
+    }
+    // Add last endpoint
+    const last = segments[segments.length - 1];
+    if (last) nodes.push({ x: last.x2, y: last.y2 });
+    return nodes;
+  }
+
   function drawCausalHighlights(projByIdx, highlight, now, globeCx, globeCy, globeRadius) {
     if (highlight < 0.01 || !lightningTree) return;
 
-    // Lightning only appears when step 2 text is visible (highlight > 0.85)
-    if (highlight < 0.85) return;
-
     const { segments, endX, endY } = lightningTree;
-    const drawProgress = Math.max(0, Math.min(1, (highlight - 0.85) / 0.15));
-    const boltAlpha = Math.min(1, (highlight - 0.85) / 0.05);
-    const totalSegs = segments.length;
-    const drawCount = Math.floor(drawProgress * totalSegs);
 
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    // Phase 1 (highlight 0.7→0.85): Show the node dots FIRST (before bolt draws)
+    // Phase 2 (highlight 0.85→1.0): Bolt connects the nodes
+    const nodeReveal = Math.max(0, Math.min(1, (highlight - 0.7) / 0.15));
+    const boltStart = highlight >= 0.85;
+    const drawProgress = boltStart ? Math.max(0, Math.min(1, (highlight - 0.85) / 0.15)) : 0;
+    const boltAlpha = boltStart ? Math.min(1, (highlight - 0.85) / 0.05) : 0;
 
-    // Draw segments progressively
-    for (let i = 0; i < drawCount && i < totalSegs; i++) {
-      const seg = segments[i];
-      const sx1 = globeCx + seg.x1 * globeRadius;
-      const sy1 = globeCy - seg.y1 * globeRadius;
-      const sx2 = globeCx + seg.x2 * globeRadius;
-      const sy2 = globeCy - seg.y2 * globeRadius;
+    // Collect unique node positions from main path
+    const boltNodes = collectBoltNodes(segments);
+    const totalNodes = boltNodes.length;
 
-      const distFromHead = (drawCount - i) / totalSegs;
-      const trailFade = Math.max(0.08, Math.exp(-distFromHead * 3));
-      const a = boltAlpha * trailFade;
-      const widthScale = seg.isBranch ? 0.5 : 1;
-      const alphaScale = seg.isBranch ? 0.45 : 1;
+    // --- PHASE 1: Draw node dots (appear before bolt, fade in progressively) ---
+    if (nodeReveal > 0) {
+      const visibleNodes = Math.floor(nodeReveal * totalNodes);
+      for (let n = 0; n < visibleNodes && n < totalNodes; n++) {
+        const node = boltNodes[n];
+        const nx = globeCx + node.x * globeRadius;
+        const ny = globeCy - node.y * globeRadius;
+        const na = nodeReveal * (0.5 + 0.5 * Math.sin(now * 0.003 + n * 1.2));
 
-      // Outer glow
-      ctx.strokeStyle = `rgba(34,197,94,${a * 0.1 * alphaScale})`;
-      ctx.lineWidth = (20 * trailFade + 6) * widthScale;
-      ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
-
-      // Mid glow
-      ctx.strokeStyle = `rgba(34,220,100,${a * 0.35 * alphaScale})`;
-      ctx.lineWidth = (7 * trailFade + 3) * widthScale;
-      ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
-
-      // Core — bright
-      ctx.strokeStyle = `rgba(180,255,210,${a * 0.95 * alphaScale})`;
-      ctx.lineWidth = (3 * trailFade + 1) * widthScale;
-      ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
+        // Outer glow
+        ctx.beginPath(); ctx.arc(nx, ny, 10, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(34,197,94,${na * 0.15})`; ctx.fill();
+        // Mid
+        ctx.beginPath(); ctx.arc(nx, ny, 5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(34,197,94,${na * 0.3})`; ctx.fill();
+        // Core dot
+        ctx.beginPath(); ctx.arc(nx, ny, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200,255,220,${na * 0.7})`; ctx.fill();
+      }
     }
 
-    // Node dots at branch points (every ~16 segments of main path)
-    for (let i = 0; i < drawCount && i < totalSegs; i += 16) {
-      const seg = segments[i];
-      if (seg.isBranch) continue;
-      const nx = globeCx + seg.x1 * globeRadius;
-      const ny = globeCy - seg.y1 * globeRadius;
-      const distFromHead = (drawCount - i) / totalSegs;
-      const na = boltAlpha * Math.max(0.15, Math.exp(-distFromHead * 3));
+    // --- PHASE 2: Draw bolt connecting the nodes ---
+    if (boltStart) {
+      const totalSegs = segments.length;
+      const drawCount = Math.floor(drawProgress * totalSegs);
 
-      ctx.beginPath(); ctx.arc(nx, ny, 6, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(34,197,94,${na * 0.3})`; ctx.fill();
-      ctx.beginPath(); ctx.arc(nx, ny, 3, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(180,255,210,${na * 0.8})`; ctx.fill();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      for (let i = 0; i < drawCount && i < totalSegs; i++) {
+        const seg = segments[i];
+        const sx1 = globeCx + seg.x1 * globeRadius;
+        const sy1 = globeCy - seg.y1 * globeRadius;
+        const sx2 = globeCx + seg.x2 * globeRadius;
+        const sy2 = globeCy - seg.y2 * globeRadius;
+
+        const distFromHead = (drawCount - i) / totalSegs;
+        const trailFade = Math.max(0.08, Math.exp(-distFromHead * 3));
+        const a = boltAlpha * trailFade;
+        const ws = seg.isBranch ? 0.5 : 1;
+        const as = seg.isBranch ? 0.4 : 1;
+
+        // Outer glow
+        ctx.strokeStyle = `rgba(34,197,94,${a * 0.1 * as})`;
+        ctx.lineWidth = (18 * trailFade + 5) * ws;
+        ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
+
+        // Mid glow
+        ctx.strokeStyle = `rgba(34,220,100,${a * 0.35 * as})`;
+        ctx.lineWidth = (6 * trailFade + 2.5) * ws;
+        ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
+
+        // Core
+        ctx.strokeStyle = `rgba(180,255,210,${a * 0.9 * as})`;
+        ctx.lineWidth = (2.5 * trailFade + 1) * ws;
+        ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
+      }
+
+      // Bright node dots at connection points the bolt has passed through
+      const passedNodes = Math.floor(drawProgress * totalNodes);
+      for (let n = 0; n < passedNodes && n < totalNodes; n++) {
+        const node = boltNodes[n];
+        const nx = globeCx + node.x * globeRadius;
+        const ny = globeCy - node.y * globeRadius;
+
+        ctx.beginPath(); ctx.arc(nx, ny, 7, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(34,197,94,${boltAlpha * 0.35})`; ctx.fill();
+        ctx.beginPath(); ctx.arc(nx, ny, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200,255,230,${boltAlpha * 0.9})`; ctx.fill();
+      }
+
+      // Traveling head dot
+      if (drawCount > 0 && drawCount < totalSegs) {
+        const headSeg = segments[Math.min(drawCount, totalSegs - 1)];
+        const hx = globeCx + headSeg.x1 * globeRadius;
+        const hy = globeCy - headSeg.y1 * globeRadius;
+        ctx.beginPath(); ctx.arc(hx, hy, 9, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200,255,220,${boltAlpha * 0.95})`; ctx.fill();
+        ctx.beginPath(); ctx.arc(hx, hy, 20, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(34,197,94,${boltAlpha * 0.12})`; ctx.fill();
+      }
     }
 
-    // Traveling head dot
-    if (drawCount > 0 && drawCount < totalSegs) {
-      const headSeg = segments[Math.min(drawCount, totalSegs - 1)];
-      const hx = globeCx + headSeg.x1 * globeRadius;
-      const hy = globeCy - headSeg.y1 * globeRadius;
-      ctx.beginPath(); ctx.arc(hx, hy, 8, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(200,255,220,${boltAlpha * 0.9})`; ctx.fill();
-      ctx.beginPath(); ctx.arc(hx, hy, 18, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(34,197,94,${boltAlpha * 0.12})`; ctx.fill();
-    }
-
-    // ROOT CAUSE NODE — appears at end of bolt draw
+    // ROOT CAUSE NODE
     const rcProgress = Math.max(0, Math.min(1, (highlight - 0.97) / 0.03));
     if (rcProgress > 0) {
       const rcx = globeCx + endX * globeRadius;
@@ -844,15 +886,10 @@
       const pi = particles[p.idx];
       ctx.fillStyle = `rgba(${p.colorR},${p.colorG},${p.colorB},${alpha})`;
 
-      if (pi.grainType === 0) {
-        // Streak — thin elongated rect
-        const cos = pi.grainCos, sin = pi.grainSin;
-        const hw = sz * 1.2, hh = sz * pi.grainAspect * 0.5;
-        ctx.fillRect(p.sx - cos * hw, p.sy - sin * hw, cos * hw * 2 + hh, sin * hw * 2 + hh);
-      } else {
-        // Dot — clean, round feel
-        ctx.fillRect(p.sx - sz * 0.3, p.sy - sz * 0.3, sz * 0.6, sz * 0.6);
-      }
+      // Circular dot
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, sz * 0.35, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     // --- Green overlay ---
