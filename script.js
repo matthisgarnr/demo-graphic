@@ -886,9 +886,9 @@
       const pi = particles[p.idx];
       ctx.fillStyle = `rgba(${p.colorR},${p.colorG},${p.colorB},${alpha})`;
 
-      // Circular dot
+      // Circular dot — 2x size
       ctx.beginPath();
-      ctx.arc(p.sx, p.sy, sz * 0.35, 0, Math.PI * 2);
+      ctx.arc(p.sx, p.sy, sz * 0.7, 0, Math.PI * 2);
       ctx.fill();
     }
 
