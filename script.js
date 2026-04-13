@@ -5,7 +5,8 @@
 (function () {
   'use strict';
 
-  const PARTICLE_COUNT = 8000;
+  const IS_MOBILE = window.innerWidth <= 768;
+  const PARTICLE_COUNT = IS_MOBILE ? 4000 : 8000;
   const CONNECTION_DISTANCE = 0.08;
   const MAX_CONNECTIONS = 2000;
   const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
@@ -80,9 +81,9 @@
       const isStorm = chaos > 0.55;
       const disp = isStorm ? 1 + chaos * 0.08 * (0.5 + Math.random()) : 1;
 
-      // Grain shape: mostly dots and small squares for cleaner look
+      // Grain shape: dots only + minimal streaks (no squares per feedback)
       const gr = Math.random();
-      const grainType = gr < 0.15 ? 0 : gr < 0.55 ? 1 : 2;
+      const grainType = gr < 0.08 ? 0 : 2;
       const baseSize = isStorm ? (1.8 + chaos * 2.0 + Math.random() * 0.6) : (0.9 + (1 - chaos) * 0.7 + Math.random() * 0.5);
 
       particles.push({
@@ -303,7 +304,7 @@
   const HERO_INTRO = 0.05;
 
   const HERO_STATE = {
-    rotSpeed: 0.003, globeOffY: 1.6, zoom: 1.6,
+    rotSpeed: 0.0015, globeOffY: 1.6, zoom: 1.6,
     stormAlpha: 1.0, normalAlpha: 1.0,
     lineAlpha: 0.3, scatterAmt: 0,
     greenOverlay: 0.5, labelOpacity: 0.6, causalHighlight: 0,
@@ -312,14 +313,14 @@
 
   const STEPS = [
     { // 0 — Problem Statement (chaos): globe rises to center, icons scatter
-      rotSpeed: 0.006, globeOffY: 0.3, zoom: 1.0,
+      rotSpeed: 0.003, globeOffY: 0.3, zoom: 1.0,
       stormAlpha: 0.75, normalAlpha: 0.5,
       lineAlpha: 0.01, scatterAmt: 0.8,
       greenOverlay: 0, labelOpacity: 0.3, causalHighlight: 0,
       heroGlow: 0,
     },
     { // 1 — PWM (converge + labels): globe centered on screen
-      rotSpeed: 0.002, globeOffY: 0.15, zoom: 1.2,
+      rotSpeed: 0.001, globeOffY: 0.15, zoom: 1.2,
       stormAlpha: 1.0, normalAlpha: 0.9,
       lineAlpha: 0, scatterAmt: 0,
       greenOverlay: 0.3, labelOpacity: 1, causalHighlight: 0,
@@ -601,251 +602,147 @@
   }
 
   // ============================================================
-  // CAUSAL HIGHLIGHTS — lightning bolt + ambient traces
+  // PROCEDURAL BRANCHING LIGHTNING SYSTEM
   // ============================================================
-  let causalTraces = [];     // Ambient background traces
-  let lightningBolt = null;  // The main dramatic trace
-  let rootCauseIdx = -1;     // Index of the "smoking gun" particle
+  let lightningTree = null; // { segments: [{x1,y1,x2,y2,depth,isBranch}], endX, endY }
+
+  // Midpoint displacement algorithm with branching
+  function generateLightning(x1, y1, x2, y2, depth, maxDepth, roughness, branchProb) {
+    if (depth >= maxDepth) {
+      return [{ x1, y1, x2, y2, depth: 0, isBranch: false }];
+    }
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2;
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const nx = -dy / len, ny = dx / len;
+    const offset = (Math.random() - 0.5) * len * roughness;
+    const cx = mx + nx * offset;
+    const cy = my + ny * offset;
+
+    const left = generateLightning(x1, y1, cx, cy, depth + 1, maxDepth, roughness * 0.95, branchProb);
+    const right = generateLightning(cx, cy, x2, y2, depth + 1, maxDepth, roughness * 0.95, branchProb);
+
+    let branches = [];
+    if (depth > 1 && depth < maxDepth - 1 && Math.random() < branchProb) {
+      const angle = Math.atan2(y2 - y1, x2 - x1) + (Math.random() > 0.5 ? 1 : -1) * (0.4 + Math.random() * 0.5);
+      const bLen = len * (0.25 + Math.random() * 0.3);
+      const bx = cx + Math.cos(angle) * bLen;
+      const by = cy + Math.sin(angle) * bLen;
+      const branchSegs = generateLightning(cx, cy, bx, by, depth + 2, maxDepth, roughness * 0.8, branchProb * 0.4);
+      branchSegs.forEach(s => { s.isBranch = true; s.depth = Math.max(s.depth, 1); });
+      branches = branchSegs;
+    }
+
+    return [...left, ...right, ...branches];
+  }
 
   function buildCausalPairs() {
-    causalTraces = [];
-    const N = particles.length;
-
-    function findDistantParticle(fromIdx, minDist, maxDist, exclude) {
-      const fp = particles[fromIdx];
-      let best = -1, bestDist = Infinity;
-      for (let attempt = 0; attempt < 200; attempt++) {
-        const j = Math.floor(Math.random() * N);
-        if (j === fromIdx || exclude.has(j)) continue;
-        const dx = fp.origX - particles[j].origX;
-        const dy = fp.origY - particles[j].origY;
-        const dz = fp.origZ - particles[j].origZ;
-        const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (d >= minDist && d <= maxDist && d < bestDist) {
-          best = j;
-          bestDist = d;
-        }
-      }
-      return best;
-    }
-
-    // --- Build the LIGHTNING BOLT as fixed relative offsets from globe center ---
-    // These are normalized offsets (-1 to 1) that get multiplied by the globe radius
-    // Path goes from upper-left to lower-right across the globe face
-    {
-      const boltOffsets = [
-        { x: -0.12, y:  0.30 },
-        { x: -0.05, y:  0.22 },
-        { x:  0.06, y:  0.15 },
-        { x: -0.02, y:  0.06 },
-        { x:  0.10, y: -0.02 },
-        { x:  0.02, y: -0.10 },
-        { x:  0.12, y: -0.16 },
-        { x:  0.05, y: -0.24 },
-        { x:  0.14, y: -0.30 },
-        { x:  0.08, y: -0.36 },
-        { x:  0.15, y: -0.42 },
-      ];
-      lightningBolt = { offsets: boltOffsets };
-    }
-
-    // --- Build ambient background traces (dimmer, thinner) ---
-    for (let t = 0; t < 15; t++) {
-      const chainLen = 4 + Math.floor(Math.random() * 6);
-      let startIdx = Math.floor(Math.random() * N);
-      const chain = [startIdx];
-      const chainSet = new Set([startIdx]);
-
-      for (let hop = 0; hop < chainLen; hop++) {
-        const lastIdx = chain[chain.length - 1];
-        // Hop to a particle 0.3-1.2 units away (medium-to-long distance on unit sphere)
-        const next = findDistantParticle(lastIdx, 0.25, 1.0, chainSet);
-        if (next === -1) break;
-        chain.push(next);
-        chainSet.add(next);
-      }
-
-      if (chain.length >= 4) {
-        causalTraces.push({
-          indices: chain,
-          speed: 0.3 + Math.random() * 0.7,   // Pulse travel speed
-          offset: Math.random() * Math.PI * 2,  // Phase offset
-          width: 0.8 + Math.random() * 1.2,     // Line width
-          hue: Math.random() > 0.3 ? 0 : 1,     // 0 = green, 1 = teal accent
-        });
-      }
-    }
+    // Generate the lightning tree with fixed start/end points on the globe
+    // Start: upper-left, End: lower-right (the "root cause")
+    const segs = generateLightning(-0.35, 0.38, 0.38, -0.38, 0, 7, 0.18, 0.4);
+    lightningTree = { segments: segs, endX: 0.38, endY: -0.38 };
   }
 
   function drawCausalHighlights(projByIdx, highlight, now, globeCx, globeCy, globeRadius) {
-    if (highlight < 0.01) return;
+    if (highlight < 0.01 || !lightningTree) return;
 
-    // --- LIGHTNING BOLT: scroll-driven, fixed position relative to globe ---
-    if (lightningBolt && highlight > 0.3) {
-      const { offsets } = lightningBolt;
+    // Lightning only appears when step 2 text is visible (highlight > 0.85)
+    if (highlight < 0.85) return;
 
-      // Convert fixed offsets to screen coordinates using globe center/radius
-      const pts = offsets.map(o => ({
-        x: globeCx + o.x * globeRadius,
-        y: globeCy - o.y * globeRadius,
-      }));
+    const { segments, endX, endY } = lightningTree;
+    const drawProgress = Math.max(0, Math.min(1, (highlight - 0.85) / 0.15));
+    const boltAlpha = Math.min(1, (highlight - 0.85) / 0.05);
+    const totalSegs = segments.length;
+    const drawCount = Math.floor(drawProgress * totalSegs);
 
-      if (pts.length >= 4) {
-        // Build smooth Catmull-Rom spline
-        const SUBDIV = 10;
-        const smoothPath = [];
-        for (let i = 0; i < pts.length - 1; i++) {
-          const p0 = pts[Math.max(0, i - 1)];
-          const p1 = pts[i];
-          const p2 = pts[Math.min(pts.length - 1, i + 1)];
-          const p3 = pts[Math.min(pts.length - 1, i + 2)];
-          for (let j = 0; j < SUBDIV; j++) {
-            const t = j / SUBDIV;
-            const t2 = t * t, t3 = t2 * t;
-            const x = 0.5 * ((2*p1.x) + (-p0.x+p2.x)*t + (2*p0.x-5*p1.x+4*p2.x-p3.x)*t2 + (-p0.x+3*p1.x-3*p2.x+p3.x)*t3);
-            const y = 0.5 * ((2*p1.y) + (-p0.y+p2.y)*t + (2*p0.y-5*p1.y+4*p2.y-p3.y)*t2 + (-p0.y+3*p1.y-3*p2.y+p3.y)*t3);
-            smoothPath.push({ x, y });
-          }
-        }
-        smoothPath.push(pts[pts.length - 1]);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
 
-        // SCROLL-DRIVEN: highlight 0.15→0.95 draws the bolt slowly
-        const drawProgress = Math.max(0, Math.min(1, (highlight - 0.15) / 0.8));
-        const headIdx = Math.floor(smoothstep(drawProgress) * (smoothPath.length - 1));
-        const boltAlpha = Math.min(1, (highlight - 0.15) / 0.15);
+    // Draw segments progressively
+    for (let i = 0; i < drawCount && i < totalSegs; i++) {
+      const seg = segments[i];
+      const sx1 = globeCx + seg.x1 * globeRadius;
+      const sy1 = globeCy - seg.y1 * globeRadius;
+      const sx2 = globeCx + seg.x2 * globeRadius;
+      const sy2 = globeCy - seg.y2 * globeRadius;
 
-        // Draw gradient trail — each segment fades from bright at head to dim at tail
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+      const distFromHead = (drawCount - i) / totalSegs;
+      const trailFade = Math.max(0.08, Math.exp(-distFromHead * 3));
+      const a = boltAlpha * trailFade;
+      const widthScale = seg.isBranch ? 0.5 : 1;
+      const alphaScale = seg.isBranch ? 0.45 : 1;
 
-        for (let i = 1; i <= headIdx && i < smoothPath.length; i++) {
-          const sp = smoothPath[i];
-          const prev = smoothPath[i - 1];
-          // Fixed-position bolt, no depth check needed
+      // Outer glow
+      ctx.strokeStyle = `rgba(34,197,94,${a * 0.1 * alphaScale})`;
+      ctx.lineWidth = (20 * trailFade + 6) * widthScale;
+      ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
 
-          // Gradient: bright near head, fading toward start
-          const distFromHead = (headIdx - i) / smoothPath.length;
-          const trailAlpha = Math.max(0.05, Math.exp(-distFromHead * 4));
-          const a = boltAlpha * trailAlpha;
+      // Mid glow
+      ctx.strokeStyle = `rgba(34,220,100,${a * 0.35 * alphaScale})`;
+      ctx.lineWidth = (7 * trailFade + 3) * widthScale;
+      ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
 
-          // Outer glow — wide, soft
-          ctx.strokeStyle = `rgba(34,197,94,${a * 0.08})`;
-          ctx.lineWidth = 16 * trailAlpha + 4;
-          ctx.beginPath();
-          ctx.moveTo(prev.x, prev.y);
-          ctx.lineTo(sp.x, sp.y);
-          ctx.stroke();
+      // Core — bright
+      ctx.strokeStyle = `rgba(180,255,210,${a * 0.95 * alphaScale})`;
+      ctx.lineWidth = (3 * trailFade + 1) * widthScale;
+      ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
+    }
 
-          // Mid glow
-          ctx.strokeStyle = `rgba(34,220,100,${a * 0.3})`;
-          ctx.lineWidth = 5 * trailAlpha + 2;
-          ctx.beginPath();
-          ctx.moveTo(prev.x, prev.y);
-          ctx.lineTo(sp.x, sp.y);
-          ctx.stroke();
+    // Node dots at branch points (every ~16 segments of main path)
+    for (let i = 0; i < drawCount && i < totalSegs; i += 16) {
+      const seg = segments[i];
+      if (seg.isBranch) continue;
+      const nx = globeCx + seg.x1 * globeRadius;
+      const ny = globeCy - seg.y1 * globeRadius;
+      const distFromHead = (drawCount - i) / totalSegs;
+      const na = boltAlpha * Math.max(0.15, Math.exp(-distFromHead * 3));
 
-          // Core — bright white-green, thinnest
-          ctx.strokeStyle = `rgba(180,255,200,${a * 0.8})`;
-          ctx.lineWidth = 2 * trailAlpha + 0.5;
-          ctx.beginPath();
-          ctx.moveTo(prev.x, prev.y);
-          ctx.lineTo(sp.x, sp.y);
-          ctx.stroke();
-        }
+      ctx.beginPath(); ctx.arc(nx, ny, 6, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(34,197,94,${na * 0.3})`; ctx.fill();
+      ctx.beginPath(); ctx.arc(nx, ny, 3, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,255,210,${na * 0.8})`; ctx.fill();
+    }
 
-        // Small fork branches at a few points along the bolt
-        for (let b = 0; b < offsets.length - 1; b += 2) {
-          const branchStart = b * SUBDIV;
-          if (branchStart >= headIdx || branchStart >= smoothPath.length) continue;
-          const sp = smoothPath[branchStart];
-          const distFromHead = (headIdx - branchStart) / smoothPath.length;
-          const ba = boltAlpha * Math.exp(-distFromHead * 5) * 0.25;
-          if (ba < 0.02) continue;
+    // Traveling head dot
+    if (drawCount > 0 && drawCount < totalSegs) {
+      const headSeg = segments[Math.min(drawCount, totalSegs - 1)];
+      const hx = globeCx + headSeg.x1 * globeRadius;
+      const hy = globeCy - headSeg.y1 * globeRadius;
+      ctx.beginPath(); ctx.arc(hx, hy, 8, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,255,220,${boltAlpha * 0.9})`; ctx.fill();
+      ctx.beginPath(); ctx.arc(hx, hy, 18, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(34,197,94,${boltAlpha * 0.12})`; ctx.fill();
+    }
 
-          const angle = (b * 2.3 + 1.1) % (Math.PI * 2);
-          const forkLen = 12 + (b % 3) * 8;
-          const fx = sp.x + Math.cos(angle) * forkLen;
-          const fy = sp.y + Math.sin(angle) * forkLen;
+    // ROOT CAUSE NODE — appears at end of bolt draw
+    const rcProgress = Math.max(0, Math.min(1, (highlight - 0.97) / 0.03));
+    if (rcProgress > 0) {
+      const rcx = globeCx + endX * globeRadius;
+      const rcy = globeCy - endY * globeRadius;
+      const rcPulse = 0.6 + 0.4 * Math.sin(now * 0.004);
+      const a = rcProgress;
 
-          ctx.strokeStyle = `rgba(34,197,94,${ba})`;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(sp.x, sp.y);
-          ctx.lineTo(fx, fy);
-          ctx.stroke();
-        }
+      ctx.beginPath(); ctx.arc(rcx, rcy, 40 + rcPulse * 12, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(245,158,11,${a * 0.12})`; ctx.fill();
+      ctx.beginPath(); ctx.arc(rcx, rcy, 22, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(245,158,11,${a * 0.3})`; ctx.fill();
+      ctx.beginPath(); ctx.arc(rcx, rcy, 8, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,210,60,${a})`; ctx.fill();
+      ctx.beginPath(); ctx.arc(rcx, rcy, 3, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,220,${a})`; ctx.fill();
 
-        // Traveling head dot with glow
-        if (headIdx > 0 && headIdx < smoothPath.length) {
-          const hp = smoothPath[headIdx];
-          ctx.beginPath();
-          ctx.arc(hp.x, hp.y, 7, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(200,255,220,${boltAlpha * 0.95})`;
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(hp.x, hp.y, 16, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(34,197,94,${boltAlpha * 0.12})`;
-          ctx.fill();
-        }
-
-        // --- ROOT CAUSE NODE: at the last point of the bolt path ---
-        const rcProgress = Math.max(0, Math.min(1, (highlight - 0.85) / 0.15));
-        const rcPoint = pts[pts.length - 1];
-        if (rcPoint && rcProgress > 0) {
-          const rc = { sx: rcPoint.x, sy: rcPoint.y };
-          if (rc) {
-            const rcPulse = 0.6 + 0.4 * Math.sin(now * 0.004);
-            const a = rcProgress; // no depth fade — always full visibility
-
-            // Widest outer glow
-            ctx.beginPath();
-            ctx.arc(rc.sx, rc.sy, 40 + rcPulse * 12, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(245,158,11,${a * 0.12})`;
-            ctx.fill();
-
-            // Mid glow
-            ctx.beginPath();
-            ctx.arc(rc.sx, rc.sy, 22, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(245,158,11,${a * 0.3})`;
-            ctx.fill();
-
-            // Core
-            ctx.beginPath();
-            ctx.arc(rc.sx, rc.sy, 8, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255,210,60,${a})`;
-            ctx.fill();
-
-            // White hot center
-            ctx.beginPath();
-            ctx.arc(rc.sx, rc.sy, 3, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255,255,220,${a})`;
-            ctx.fill();
-
-            // Label — pill background + large text — fully opaque
-            const labelText = 'Root Cause';
-            ctx.font = '700 18px Inter, sans-serif';
-            const tw = ctx.measureText(labelText).width;
-            const lx = rc.sx + 24, ly = rc.sy;
-            const pillPad = 10;
-
-            // Dark pill behind label
-            const pillW = tw + pillPad * 2, pillH = 32;
-            ctx.beginPath();
-            if (ctx.roundRect) { ctx.roundRect(lx - pillPad, ly - pillH / 2, pillW, pillH, 6); }
-            else { ctx.rect(lx - pillPad, ly - pillH / 2, pillW, pillH); }
-            ctx.fillStyle = `rgba(20,10,0,${a * 0.85})`;
-            ctx.fill();
-            ctx.strokeStyle = `rgba(245,158,11,${a * 0.7})`;
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-
-            // Label text — full white-amber, no fade
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = `rgba(255,200,50,${a})`;
-            ctx.fillText(labelText, lx, ly);
-          }
-        }
-      }
+      const labelText = 'Root Cause';
+      ctx.font = '700 18px Inter, sans-serif';
+      const tw = ctx.measureText(labelText).width;
+      const lx = rcx + 24, ly = rcy, pp = 10;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(lx - pp, ly - 16, tw + pp * 2, 32, 6);
+      else ctx.rect(lx - pp, ly - 16, tw + pp * 2, 32);
+      ctx.fillStyle = `rgba(20,10,0,${a * 0.85})`; ctx.fill();
+      ctx.strokeStyle = `rgba(245,158,11,${a * 0.7})`; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = `rgba(255,200,50,${a})`; ctx.fillText(labelText, lx, ly);
     }
   }
 
@@ -948,16 +845,12 @@
       ctx.fillStyle = `rgba(${p.colorR},${p.colorG},${p.colorB},${alpha})`;
 
       if (pi.grainType === 0) {
-        // Streak — thin elongated rect (no rotate for perf, use pre-computed dx/dy)
+        // Streak — thin elongated rect
         const cos = pi.grainCos, sin = pi.grainSin;
         const hw = sz * 1.2, hh = sz * pi.grainAspect * 0.5;
-        // Approximate rotated rect as a thin line via two rects offset
         ctx.fillRect(p.sx - cos * hw, p.sy - sin * hw, cos * hw * 2 + hh, sin * hw * 2 + hh);
-      } else if (pi.grainType === 1) {
-        // Tiny square — clean, minimal
-        ctx.fillRect(p.sx - sz * 0.4, p.sy - sz * 0.4, sz * 0.8, sz * 0.8);
       } else {
-        // Sub-pixel dot
+        // Dot — clean, round feel
         ctx.fillRect(p.sx - sz * 0.3, p.sy - sz * 0.3, sz * 0.6, sz * 0.6);
       }
     }

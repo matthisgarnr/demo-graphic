@@ -669,6 +669,12 @@ img {
 }
 
 @media (max-width: 768px) {
+  body {
+    padding: 0;
+  }
+  .site-wrapper {
+    border-radius: 0;
+  }
   .nav {
     padding: 16px 20px;
   }
@@ -679,7 +685,7 @@ img {
     margin: 0 auto;
   }
   .hero h1 {
-    font-size: 40px;
+    font-size: 36px;
     letter-spacing: -0.02em;
   }
   .hero-content {
@@ -688,15 +694,22 @@ img {
   .hero-ctas {
     flex-direction: column;
   }
-  .scroll-step[data-step="1"],
-  .scroll-step[data-step="2"],
-  .scroll-step[data-step="3"] {
-    left: 5%;
+  /* Center ALL scroll steps on mobile */
+  .scroll-step {
+    left: 50% !important;
+    top: 50% !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    text-align: center;
+    max-width: 90vw;
+    padding: 20px;
   }
   .scroll-step h2 {
     font-size: 26px;
   }
   .scroll-step p {
     font-size: 14px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
